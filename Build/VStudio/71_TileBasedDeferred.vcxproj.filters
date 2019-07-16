@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{b4307f95-71e6-4cec-a845-40037b08d8c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{d9760727-a3b1-4f0e-9940-1957f74e6902}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\ShaderTutors\Common\3Dmath.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\dds.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\geometryutils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\vk1ext.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\spectatorcamera.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\71_TileBasedDeferred\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ShaderTutors\Common\3Dmath.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\dds.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\geometryutils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\vk1ext.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\orderedarray.hpp">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\spectatorcamera.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Media\ShadersVK\screenquad.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersVK\screenquad.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersVK\gbuffer.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersVK\gbuffer.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersVK\deferredaccum.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersVK\flares.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersVK\flares.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersVK\forward.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersVK\forward.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersVK\tonemap.frag">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

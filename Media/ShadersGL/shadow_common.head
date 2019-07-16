@@ -1,0 +1,24 @@
+
+uniform int isPerspective;
+
+float VarianceShadow2D(sampler2D shadowmap, vec4 cpos, vec2 clipplanes)
+{
+	vec2 projpos = (cpos.xy / cpos.w) * 0.5 + 0.5;
+	vec2 moments = texture(shadowmap, projpos).xy;
+
+	// linearized depth (handles ortho projection too)
+	float d01 = (cpos.z * 0.5 + 0.5);
+	float d = (cpos.w - clipplanes.x) / (clipplanes.y - clipplanes.x);
+
+	d = ((isPerspective == 1) ? d : d01);
+	
+	float mean		= moments.x;
+
+	float variance	= max(moments.y - moments.x * moments.x, 1e-5);
+	float md		= mean - d;
+	float pmax		= variance / (variance + md * md);
+
+	pmax = smoothstep(0.3, 1.0, pmax);
+
+	return max(((d <= mean) ? 1.0 : 0.0), pmax);
+}

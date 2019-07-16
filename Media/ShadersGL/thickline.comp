@@ -1,0 +1,102 @@
+
+#version 430
+
+layout (std430, binding = 0) readonly buffer VertexData {
+	vec4 data[];
+} vertexdata;
+
+layout (std430, binding = 1) writeonly buffer GeometryData {
+	vec4 data[];
+} geometrydata;
+
+uniform mat4 matView;
+uniform mat4 matProj;
+uniform mat4 matViewProjInv;
+
+uniform vec4 nearPlane;
+uniform vec2 lineThickness;
+uniform int numVertices;
+
+bool ClipToNearPlane(inout vec4 vpos1, inout vec4 vpos2)
+{
+	// plane equation: ax + by + cz + d
+	// line equation: vpos1 + t * (vpos2 - vpos1);
+
+	vec3 dir = vpos2.xyz - vpos1.xyz;
+	float t = -(nearPlane.w + dot(nearPlane.xyz, vpos1.xyz)) / dot(nearPlane.xyz, dir);
+
+	float dist1 = dot(vpos1, nearPlane);
+	float dist2 = dot(vpos2, nearPlane);
+
+	bool clipped = false;
+
+	if (dist1 < 0) {
+		// vpos1 behind near plane
+		vpos1.xyz = vpos1.xyz + t * dir;
+		clipped = true;
+	} else if (dist2 < 0) {
+		// vpos2 behind near plane
+		vpos2.xyz = vpos1.xyz + t * dir;
+		clipped = true;
+	}
+
+	return clipped;
+}
+
+layout (local_size_x = 64) in;
+void main()
+{
+	if (gl_GlobalInvocationID.x >= uint(numVertices))
+		return;
+
+	// work in clusters of 2
+	if (gl_LocalInvocationIndex % 2 == 0) {
+		uint start = gl_GlobalInvocationID.x;
+
+		vec4 v1 = vertexdata.data[start + 0];
+		vec4 v2 = vertexdata.data[start + 1];
+
+		vec4 vpos1 = matView * vec4(v1.xyz, 1.0);
+		vec4 vpos2 = matView * vec4(v2.xyz, 1.0);
+
+		// transform to screen space
+		vec4 spos1 = matProj * vpos1;
+		vec4 spos2 = matProj * vpos2;
+	
+		// clip manually to near plane
+		if (ClipToNearPlane(vpos1, vpos2)) {
+			spos1 = matProj * vpos1;
+			spos2 = matProj * vpos2;
+		}
+
+		spos1 /= spos1.w;
+		spos2 /= spos2.w;
+
+		// calculate normal 
+		vec2 d = normalize(spos2.xy - spos1.xy);
+		vec2 n = vec2(d.y, -d.x);
+
+		// thicken it
+		vec4 wpos1 = spos1 + vec4(n * lineThickness, 0.0, 0.0);
+		vec4 wpos2 = spos1 - vec4(n * lineThickness, 0.0, 0.0);
+		vec4 wpos3 = spos2 + vec4(n * lineThickness, 0.0, 0.0);
+		vec4 wpos4 = spos2 - vec4(n * lineThickness, 0.0, 0.0);
+
+		// transform back to world space
+		wpos1 = matViewProjInv * wpos1;
+		wpos2 = matViewProjInv * wpos2;
+		wpos3 = matViewProjInv * wpos3;
+		wpos4 = matViewProjInv * wpos4;
+
+		wpos1 /= wpos1.w;
+		wpos2 /= wpos2.w;
+		wpos3 /= wpos3.w;
+		wpos4 /= wpos4.w;
+
+		// write to buffer
+		geometrydata.data[start * 2 + 0] = wpos1;
+		geometrydata.data[start * 2 + 1] = wpos3;
+		geometrydata.data[start * 2 + 2] = wpos2;
+		geometrydata.data[start * 2 + 3] = wpos4;
+	}
+}

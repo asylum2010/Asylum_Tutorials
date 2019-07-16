@@ -1,0 +1,125 @@
+
+#ifndef FLT_MAX
+#define FLT_MAX		3.402823466e+38
+#endif
+
+float RayIntersectPlane(out vec3 n, vec4 p, vec3 start, vec3 dir)
+{
+	float u = dot(dir, p.xyz);
+	float t = 0;
+
+	n = p.xyz;
+
+	if (u < -1e-5)
+		t = -(start.x * p.x + start.y * p.y + start.z * p.z + p.w) / u;
+
+	return ((t > 0.0f) ? t : FLT_MAX);
+}
+
+float RayIntersectSphere(out vec3 n, vec3 center, float radius, vec3 start, vec3 dir)
+{
+	vec3 stoc = start - center;
+
+	float a = dot(dir, dir);
+	float b = 2.0 * dot(stoc, dir);
+	float c = dot(stoc, stoc) - radius * radius;
+	float d = b * b - 4.0 * a * c;
+	float t = 0.0;
+
+	if (d > 0.0)
+		t = (-b - sqrt(d)) / (2.0 * a);
+
+	n = normalize(start + t * dir - center);
+
+	return ((t > 0.0) ? t : FLT_MAX);
+}
+
+float RayIntersectBox(out vec3 n, vec3 pos, vec3 size, vec3 start, vec3 dir)
+{
+	vec3 hsize = size * 0.5;
+	vec3 bmin = pos - hsize;
+	vec3 bmax = pos + hsize;
+
+	vec3 m1 = bmin - start;
+	vec3 m2 = bmax - start;
+
+	vec3 tmin = m1 / dir;
+	vec3 tmax = m2 / dir;
+
+	vec3 t1 = min(tmin, tmax);
+	vec3 t2 = max(tmin, tmax);
+
+	float tn = max(max(t1.x, t1.y), t1.z);
+	float tf = min(min(t2.x, t2.y), t2.z);
+
+	float t = FLT_MAX;
+
+	if (tn < tf && tf > 0.0)
+		t = tn;
+
+	vec3 p = start + (t - 1e-3) * dir;
+
+	if (p.x < bmin.x + 1e-4)
+		n = vec3(-1.0, 0.0, 0.0);
+	else if (p.x > bmax.x - 1e-4)
+		n = vec3(1.0, 0.0, 0.0);
+	else if (p.y < bmin.y + 1e-4)
+		n = vec3(0.0, -1.0, 0.0);
+	else if (p.y > bmax.y - 1e-4)
+		n = vec3(0.0, 1.0, 0.0);
+	else if (p.z < bmin.z + 1e-4)
+		n = vec3(0.0, 0.0, -1.0);
+	else
+		n = vec3(0.0, 0.0, 1.0);
+
+	return t;
+}
+
+float RayIntersectDisk(out vec3 n, vec3 pos, vec3 axis, float radius, vec3 start, vec3 dir)
+{
+	vec4 p = vec4(axis, -dot(pos, axis));
+	float t = RayIntersectPlane(n, p, start, dir);
+
+	if (t != FLT_MAX) {
+		vec3 y = start + t * dir - pos;
+
+		if (dot(y, y) > radius * radius)
+			t = FLT_MAX;
+	}
+
+	return ((t > 0.0) ? t : FLT_MAX);
+}
+
+float RayIntersectCylinder(out vec3 n, vec4 pos, vec4 axis, vec3 start, vec3 dir)
+{
+	float radius = pos.w;
+	float halfheight = axis.w * 0.5;
+
+	vec3 x = cross(axis.xyz, dir);
+	vec3 y = cross(axis.xyz, start - pos.xyz);
+
+	float a = dot(x, x);
+	float b = 2.0 * dot(x, y);
+	float c = dot(y, y) - radius * radius;
+	float d = b * b - 4.0 * a * c;
+	float t = 0.0;
+	float test;
+
+	if (d > 0.0)
+		t = (-b - sqrt(d)) / (2.0 * a);
+
+	x = start + t * dir;
+	test = dot(x - pos.xyz, axis.xyz);
+
+	if (abs(test) > halfheight) {
+		t = RayIntersectDisk(n, pos.xyz + halfheight * axis.xyz, axis.xyz, radius, start, dir);
+
+		if (t == FLT_MAX)
+			t = RayIntersectDisk(n, pos.xyz - halfheight * axis.xyz, -axis.xyz, radius, start, dir);
+	} else {
+		y = cross(x - pos.xyz, axis.xyz);
+		n = normalize(cross(axis.xyz, y));
+	}
+
+	return ((t > 0.0) ? t : FLT_MAX);
+}

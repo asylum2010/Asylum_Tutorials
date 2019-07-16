@@ -1,0 +1,52 @@
+
+#version 430
+
+layout(rg32f, binding = 0) uniform readonly image2D tilde_h0;
+layout(r32f, binding = 1) uniform readonly image2D frequencies;
+
+layout(rg32f, binding = 2) uniform writeonly image2D tilde_h;
+layout(rg32f, binding = 3) uniform writeonly image2D tilde_D;
+
+uniform float time;
+
+layout (local_size_x = 16, local_size_y = 16) in;
+void main()
+{
+	ivec2 loc1	= ivec2(gl_GlobalInvocationID.xy);
+	ivec2 loc2	= ivec2(DISP_MAP_SIZE - loc1.x, DISP_MAP_SIZE - loc1.y);
+
+	vec2 h_tk;
+	vec2 h0_k	= imageLoad(tilde_h0, loc1).rg;
+	vec2 h0_mk	= imageLoad(tilde_h0, loc2).rg;
+	float w_k	= imageLoad(frequencies, loc1).r;
+
+	// Euler's formula: e^{ix} = \cos x + i \sin x
+	float cos_wt = cos(w_k * time);
+	float sin_wt = sin(w_k * time);
+
+	// heightfield spectrum
+	// \tilde{h}(\mathbf{k},t) = \tilde{tilde_h0}(\mathbf{k}) \ e^{i\omega(k)t} + \tilde{tilde_h0^{*}}(-\mathbf{k}) \ e^{-i\omega(k)t}
+	h_tk.x = cos_wt * (h0_k.x + h0_mk.x) - sin_wt * (h0_k.y + h0_mk.y);
+	h_tk.y = cos_wt * (h0_k.y - h0_mk.y) + sin_wt * (h0_k.x - h0_mk.x);
+
+	// choppy field spectra
+	// \tilde{\mathbf{D}}(\mathbf{k},t) = -i \frac{\mathbf{k}}{k} \ \tilde{h}(\mathbf{k},t)
+	vec2 k;
+
+	k.x = float(DISP_MAP_SIZE / 2 - loc1.x);
+	k.y = float(DISP_MAP_SIZE / 2 - loc1.y);
+
+	float kn2 = dot(k, k);
+	vec2 nk = vec2(0.0, 0.0);
+
+	if (kn2 > 1e-12)
+		nk = normalize(k);
+
+	// take advantage of DFT's linearity
+	vec2 Dt_x = vec2(h_tk.y * nk.x, -h_tk.x * nk.x);
+	vec2 iDt_z = vec2(h_tk.x * nk.y, h_tk.y * nk.y);
+
+	// write ouptut
+	imageStore(tilde_h, loc1, vec4(h_tk, 0.0, 0.0));
+	imageStore(tilde_D, loc1, vec4(Dt_x + iDt_z, 0.0, 0.0));
+}

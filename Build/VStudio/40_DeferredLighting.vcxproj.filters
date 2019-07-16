@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{d42a988c-5af9-45a3-9d40-029c0cb2b44a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{a094d97b-e32e-4b88-a66c-b2e774422767}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\ShaderTutors\Common\3Dmath.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\basiccamera.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\dx9ext.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\40_DeferredLighting\main.cpp" />
+    <ClCompile Include="..\..\ShaderTutors\Common\geometryutils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\particlesystem.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ShaderTutors\Common\3Dmath.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\basiccamera.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\dx9ext.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\geometryutils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\particlesystem.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Media\ShadersDX\screenquad.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersDX\shadowmap.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersDX\tonemap.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersDX\blur.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersDX\pbr_common.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersDX\sky.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersDX\gbuffer_dl.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersDX\deferredlighting.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersDX\forwardlighting.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersDX\lighting_common.fx">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

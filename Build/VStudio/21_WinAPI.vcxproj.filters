@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{504e5dd8-ec78-4582-aba6-bba88cf451e6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\OtherTutors\21_WinAPI\animatedgif.cpp" />
+    <ClCompile Include="..\..\OtherTutors\21_WinAPI\customcombo.cpp" />
+    <ClCompile Include="..\..\OtherTutors\21_WinAPI\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\OtherTutors\21_WinAPI\animatedgif.h" />
+    <ClInclude Include="..\..\OtherTutors\21_WinAPI\customcombo.h" />
+    <ClInclude Include="..\..\OtherTutors\21_WinAPI\resource.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\OtherTutors\21_WinAPI\circle.gif">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="..\..\OtherTutors\21_WinAPI\gear.gif">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="..\..\OtherTutors\21_WinAPI\square.gif">
+      <Filter>Resources</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\OtherTutors\21_WinAPI\Form1.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,157 @@
+
+#version 430
+
+struct LightParticle
+{
+	vec4 Color;
+	vec4 Previous;
+	vec4 Current;
+	vec4 VelocityAndRadius;
+};
+
+struct ListHead
+{
+	uvec4 StartAndCount;
+};
+
+struct ListNode
+{
+	uvec4 LightIndexAndNext;
+};
+
+layout(std140, binding = 0) writeonly buffer HeadBuffer {
+	ListHead data[];
+} headbuffer;
+
+layout(std140, binding = 1) writeonly buffer NodeBuffer {
+	ListNode data[];
+} nodebuffer;
+
+layout(std140, binding = 2) readonly buffer LightBuffer {
+	LightParticle data[];
+} lightbuffer;
+
+layout(binding = 0) uniform sampler2D depthSampler;
+layout(binding = 0) uniform atomic_uint nextInsertionPoint;
+
+uniform mat4 matView;
+uniform mat4 matProj;
+uniform mat4 matViewProj;
+uniform vec2 clipPlanes;
+uniform vec2 screenSize;
+uniform float alpha;
+uniform int numLights;
+
+shared uint TileMinZ;
+shared uint TileMaxZ;
+shared uint TileLightStart;
+shared uint TileLightCount;
+shared vec4 FrustumPlanes[6];
+
+layout (local_size_x = 16, local_size_y = 16) in;
+void main()
+{
+	ivec2	loc		= ivec2(gl_GlobalInvocationID.xy);
+	ivec2	itemID	= ivec2(gl_LocalInvocationID.xy);
+	ivec2	tileID	= ivec2(gl_WorkGroupID.xy);
+	ivec2	tileNum	= ivec2(gl_NumWorkGroups.xy);
+	int		index	= tileID.y * tileNum.x + tileID.x;
+
+	// initialize globals
+	if (gl_LocalInvocationIndex == 0) {
+		TileMinZ		= 0x7F7FFFFF;
+		TileMaxZ		= 0;
+		TileLightStart	= 0xFFFFFFFF;
+		TileLightCount	= 0;
+	}
+
+	barrier();
+
+	// STEP 1: calculate min/max depth in this tile
+	vec2 tex = vec2(loc) / screenSize;
+	float depth = texture(depthSampler, tex).r;
+	float linearz = (0.5 * matProj[3][2]) / (depth + 0.5 * matProj[2][2] - 0.5);
+
+	float minz = min(clipPlanes.y, linearz);
+	float maxz = max(clipPlanes.x, linearz);
+
+	if (minz <= maxz) {
+		atomicMin(TileMinZ, floatBitsToUint(minz));
+		atomicMax(TileMaxZ, floatBitsToUint(maxz));
+	}
+
+	barrier();
+
+	// STEP 2: calculate frustum
+	if (gl_LocalInvocationIndex == 0) {
+		minz = uintBitsToFloat(TileMinZ);
+		maxz = uintBitsToFloat(TileMaxZ);
+
+		vec2 step1 = (2.0 * vec2(tileID)) / vec2(tileNum);
+		vec2 step2 = (2.0 * vec2(tileID + ivec2(1, 1))) / vec2(tileNum);
+
+		FrustumPlanes[0] = vec4(1, 0, 0, 1 - step1.x);		// left
+		FrustumPlanes[1] = vec4(-1, 0, 0, -1 + step2.x);	// right
+		FrustumPlanes[2] = vec4(0, 1, 0, 1 - step1.y);		// bottom
+		FrustumPlanes[3] = vec4(0, -1, 0, -1 + step2.y);	// top
+		FrustumPlanes[4] = vec4(0, 0, -1, -minz);			// near
+		FrustumPlanes[5] = vec4(0, 0, 1, maxz);				// far
+
+		for (int i = 0; i < 4; ++i) {
+			FrustumPlanes[i] = FrustumPlanes[i] * matViewProj;
+			FrustumPlanes[i] /= length(FrustumPlanes[i].xyz);
+		}
+
+		FrustumPlanes[4] = FrustumPlanes[4] * matView;
+		FrustumPlanes[5] = FrustumPlanes[5] * matView;
+
+		FrustumPlanes[4] /= length(FrustumPlanes[4].xyz);
+		FrustumPlanes[5] /= length(FrustumPlanes[5].xyz);
+	}
+
+	barrier();
+
+	// STEP 3: cull lights
+	vec4	pos;
+	float	dist;
+	float	radius;
+
+	uint	prev, next;
+	uint	lightsperitem	= max(numLights / 256, 1);
+	uint	remainder		= numLights % 256;
+	uint	lightstart, lightend;
+
+	if (gl_LocalInvocationIndex < remainder) {
+		++lightsperitem;
+		lightstart = lightsperitem * gl_LocalInvocationIndex;
+	} else {
+		lightstart = remainder * (lightsperitem + 1) + (gl_LocalInvocationIndex - remainder) * lightsperitem;
+	}
+
+	lightend = min(lightstart + lightsperitem, numLights);
+
+	for (uint i = lightstart; i < lightend; ++i) {
+		pos = mix(lightbuffer.data[i].Previous, lightbuffer.data[i].Current, alpha);
+		radius = lightbuffer.data[i].VelocityAndRadius.w;
+
+		for (int j = 0; j < 6; ++j) {
+			dist = dot(pos, FrustumPlanes[j]) + radius;
+
+			if (dist <= 0)
+				break;
+		}
+
+		if (dist > 0) {
+			next = atomicCounterIncrement(nextInsertionPoint);
+			prev = atomicExchange(TileLightStart, next);
+
+			nodebuffer.data[next].LightIndexAndNext = uvec4(i, prev, 0, 0);
+			atomicAdd(TileLightCount, 1);
+		}
+	}
+
+	barrier();
+
+	if (gl_LocalInvocationIndex == 0)
+		headbuffer.data[index].StartAndCount = uvec4(TileLightStart, TileLightCount, 0, 0);
+}

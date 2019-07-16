@@ -1,0 +1,43 @@
+
+#version 430
+
+#define PI		3.1415926535897932
+#define TWO_PI	6.2831853071795864
+
+layout(rg32f, binding = 0) uniform readonly image2D readbuff;
+layout(rg32f, binding = 1) uniform writeonly image2D writebuff;
+
+shared vec2 values[DISP_MAP_SIZE];
+
+layout (local_size_x = DISP_MAP_SIZE) in;
+void main()
+{
+	const float N = float(DISP_MAP_SIZE);
+
+	int n = int(gl_WorkGroupID.x);
+	int m = int(gl_LocalInvocationID.x);
+
+	// STEP 1: load row/column into shared memory
+	values[m] = imageLoad(readbuff, ivec2(n, m)).rg;
+
+	barrier();
+
+	// STEP 2: calculate DFT
+	vec2 result = vec2(0.0);
+
+	for (int k = 0; k < DISP_MAP_SIZE; ++k) {
+		vec2 coeff = values[k];
+
+		float theta = (m * TWO_PI * float(k)) / N;
+		float cos_t = cos(theta);
+		float sin_t = sin(theta);
+
+		result.x += coeff.x * cos_t - coeff.y * sin_t;
+		result.y += coeff.y * cos_t + coeff.x * sin_t;
+	}
+
+	// STEP 3: write output
+	imageStore(writebuff, ivec2(m, n), vec4(result, 0.0, 1.0));
+
+	// NOTE: do sign correction later
+}

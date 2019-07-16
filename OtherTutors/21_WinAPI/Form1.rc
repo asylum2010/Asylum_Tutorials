@@ -1,0 +1,89 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE 9, 1
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// OTHER
+//
+
+IDI_CIRCLE_ICON		GIF		"circle.gif"
+IDI_SQUARE_ICON		GIF		"square.gif"
+IDI_GEAR_ICON		GIF		"gear.gif"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DIALOG
+//
+
+IDD_DIALOG1 DIALOGEX 0, 0, 176, 102
+STYLE DS_SETFONT|DS_MODALFRAME|DS_FIXEDSYS|WS_POPUP|WS_VISIBLE|WS_CAPTION|WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "Change indicator"
+FONT 8, "MS Shell Dlg", 0, 0
+BEGIN
+	DEFPUSHBUTTON	"OK",		IDOK,										64,		80,		50,		16
+	DEFPUSHBUTTON	"Cancel",	IDCANCEL,									120,	80,		50,		16
+	CONTROL			"Type",		IDC_GROUP1, "Button",	BS_GROUPBOX,		6,		6,		100,	56
+	CONTROL			"Circle",	IDC_RADIO1,	"Button",	BS_AUTORADIOBUTTON,	20,		20,		38,		10
+	CONTROL			"Square",	IDC_RADIO2,	"Button",	BS_AUTORADIOBUTTON,	20,		32,		38,		10
+	CONTROL			"Gear",		IDC_RADIO3,	"Button",	BS_AUTORADIOBUTTON,	20,		44,		38,		10
+END
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE  
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE  
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE  
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

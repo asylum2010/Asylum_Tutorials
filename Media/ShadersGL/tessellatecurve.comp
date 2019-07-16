@@ -1,0 +1,190 @@
+
+#version 430
+
+// NOTE: don't write complex macro expressions
+// NOTE: don't use shared variables as function argument
+
+#define BLOCK_SIZE	64
+#define MAX_DEGREE	3
+#define MAX_ORDER	4
+#define MAX_CVS		10
+#define MAX_KNOTS	14
+#define MAX_SPANS	13
+
+layout (std140, binding = 0) buffer VertexBuffer {
+	vec4 data[];
+} curvevertices;
+
+layout (std430, binding = 1) buffer IndexBuffer {
+	uvec2 data[];
+} curveindices;
+
+uniform vec4 controlPoints[MAX_CVS];
+uniform float knots[MAX_KNOTS];
+uniform float weights[MAX_CVS];
+
+uniform int numCurveVertices;
+uniform int numControlPoints;
+uniform int degree;
+
+// vec4 <=> max degree 3 curves
+shared vec4 Coeffs[52];		// MAX_ORDER * MAX_SPANS
+shared float Blossom[64];	// MAX_ORDER * MAX_ORDER * MAX_ORDER
+
+float CalculateCoeff(int i, int e, int span)
+{
+	float	kin1, ki1, kin, ki;
+	float	a, b;
+	int		order = degree + 1;
+	int		k, n, l;
+	int		index1, index2, index3;
+
+	if (e > degree)
+		return 0.0;
+
+	// iterative way to calculate coefficients
+	for (k = 0; k <= e; ++k) {
+		for (n = k; n < order; ++n) {
+			for (l = 0; l < order - n; ++l) {
+				kin1	= knots[i + l + n + 1];
+				ki1		= knots[i + l + 1];
+				kin		= knots[i + l + n];
+				ki		= knots[i + l];
+
+				a = b = 0;
+
+				index1 = (k * MAX_ORDER + n) * MAX_ORDER + l;
+				index2 = (k * MAX_ORDER + n - 1) * MAX_ORDER + l;
+				index3 = ((k - 1) * MAX_ORDER + n - 1) * MAX_ORDER + l;
+
+				if (n == 0) {
+					// C_i,0,0
+					Blossom[index1] = ((i + l == span) ? 1.0 : 0.0);
+				} else if (k == 0) {
+					// C_i,n,0
+					if (kin1 != ki1)
+						a = kin1 / (kin1 - ki1);
+
+					if (kin != ki)
+						b = ki / (kin - ki);
+
+					Blossom[index1] = Blossom[index2 + 1] * a - Blossom[index2] * b;
+				} else if (k == n) {
+					// C_i,n,n
+					if (kin != ki)
+						a = 1.0f / (kin - ki);
+
+					if (kin1 != ki1)
+						b = 1.0f / (kin1 - ki1);
+
+					Blossom[index1] = Blossom[index3] * a - Blossom[index3 + 1] * b;
+				} else {
+					// C_i,n,k
+					if (kin != ki)
+						a = (Blossom[index3] - ki * Blossom[index2]) / (kin - ki);
+
+					if (kin1 != ki1)
+						b = (Blossom[index3 + 1] - kin1 * Blossom[index2 + 1]) / (kin1 - ki1);
+
+					Blossom[index1] = a - b;
+				}
+			}
+		}
+	}
+
+	return Blossom[(e * MAX_ORDER + degree) * MAX_ORDER];
+}
+
+layout (local_size_x = BLOCK_SIZE) in;
+void main()
+{
+	vec4 cf;
+
+	int numknots	= numControlPoints + degree + 1;
+	int numsegments	= numCurveVertices - 1;
+	int lastspan	= numControlPoints - 1;
+	int order		= degree + 1;
+	int span, cp;
+	int index;
+
+	// STEP 1: calculate coefficients
+	if (gl_LocalInvocationIndex == 0) {
+		for (span = 0; span < numknots - 1; ++span) {
+			for (int k = 0; k <= min(degree, span); ++k) {
+				index = span * MAX_ORDER + k;
+
+				if (span - k < numControlPoints) {
+					cp = span - k;
+
+					cf.x = CalculateCoeff(cp, 0, span); // 1
+					cf.y = CalculateCoeff(cp, 1, span); // u
+					cf.z = CalculateCoeff(cp, 2, span); // u2
+					cf.w = CalculateCoeff(cp, 3, span); // u3
+
+					Coeffs[index] = cf;
+				} else {
+					Coeffs[index] = vec4(0.0);
+				}
+			}
+		}
+	}
+
+	barrier();
+
+	// STEP 2: fill vertex buffer
+	vec4 pos;
+	vec4 poly;
+
+	int loc				= int(gl_LocalInvocationID.x);
+	int elemsperitem	= max(1, (numCurveVertices + (BLOCK_SIZE - 1)) / BLOCK_SIZE);
+	int start			= loc * elemsperitem;
+	int end				= min(start + elemsperitem, numCurveVertices);
+
+	float firstu		= knots[degree];
+	float lastu			= knots[numControlPoints];
+	float u, nom, denom;
+
+	for (int i = start; i < end; ++i) {
+		u = float(i) / float(numsegments);
+		u = mix(firstu, lastu, u);
+
+		poly.x = 1.0;
+		poly.y = u;
+		poly.z = u * u;
+		poly.w = u * u * u;
+
+		// find span
+		for (span = 0; span < lastspan; ++span) {
+			if ((knots[span] <= u && u < knots[span + 1]))
+				break;
+		}
+
+		// sum contributions
+		pos = vec4(0.0);
+		denom = 0.0;
+
+		for (int k = 0; k < order; ++k) {
+			index = span * MAX_ORDER + k;
+			cp = (span - k) % numControlPoints;
+
+			cf = Coeffs[index];
+			nom = dot(cf, poly) * weights[cp];
+
+			denom += nom;
+			pos += controlPoints[cp] * nom;
+		}
+
+		pos /= denom;
+		pos.w = 1.0;
+
+		curvevertices.data[i] = pos;
+	}
+
+	// STEP 3: fill index buffer
+	end = min(end, numsegments);
+
+	for (int i = start; i < end; ++i) {
+		curveindices.data[i].x = i;
+		curveindices.data[i].y = i + 1;
+	}
+}

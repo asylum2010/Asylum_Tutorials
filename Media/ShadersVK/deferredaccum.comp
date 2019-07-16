@@ -1,0 +1,191 @@
+
+#version 450
+
+#define ONE_OVER_PI				0.318309
+#define MAX_LIGHTS_PER_TILE		512
+
+layout (constant_id = 1) const uint NUM_LIGHTS = 1;
+
+layout (local_size_x = 16) in;
+layout (local_size_y = 16) in;
+
+struct LightParticle {
+	vec4 color;
+	vec4 previous;
+	vec4 current;
+	vec4 velocity;	// w = radius
+};
+
+layout (std140, binding = 0) uniform UniformData {
+	mat4 matView;
+	mat4 matProj;
+	mat4 matViewProj;
+	mat4 matViewProjInv;
+	vec4 eyePos;
+	vec4 clipPlanes;	// z = interpolation value
+} uniforms;
+
+layout (rgba16f, binding = 1) uniform image2D gbufferNormals;
+layout (r32f, binding = 2) uniform image2D gbufferDepth;
+
+layout (binding = 3) uniform writeonly image2D accumDiffuse;
+layout (binding = 4) uniform writeonly image2D accumSpecular;
+
+layout (binding = 5) uniform samplerCube ambientCube;
+
+layout (std140, binding = 6) readonly buffer LightBuffer {
+	LightParticle data[];
+} lightbuffer;
+
+shared uint TileMinZ;
+shared uint TileMaxZ;
+shared vec4 FrustumPlanes[6];
+shared uint TileLights[MAX_LIGHTS_PER_TILE];
+shared uint TileLightCount;
+
+void main()
+{
+	ivec2	loc		= ivec2(gl_GlobalInvocationID.xy);
+	ivec2	tileID	= ivec2(gl_WorkGroupID.xy);
+	ivec2	tileNum	= ivec2(gl_NumWorkGroups.xy);
+	ivec2	size	= imageSize(gbufferNormals).xy - ivec2(1, 1);
+
+	// initialize globals
+	if (gl_LocalInvocationIndex == 0) {
+		TileMinZ		= 0x7F7FFFFF;
+		TileMaxZ		= 0;
+		TileLightCount	= 0;
+	}
+
+	barrier();
+
+	// STEP 1: calculate min/max depth in this tile
+	float depth = imageLoad(gbufferDepth, loc).r;
+	float linearz = -(uniforms.matProj[3][2] / (-depth - uniforms.matProj[2][2]));
+
+	float minz = min(uniforms.clipPlanes.y, linearz);
+	float maxz = max(uniforms.clipPlanes.x, linearz);
+
+	if (minz <= maxz) {
+		atomicMin(TileMinZ, floatBitsToUint(minz));
+		atomicMax(TileMaxZ, floatBitsToUint(maxz));
+	}
+
+	barrier();
+
+	// STEP 2: calculate frustum
+	if (gl_LocalInvocationIndex == 0) {
+		minz = uintBitsToFloat(TileMinZ);
+		maxz = uintBitsToFloat(TileMaxZ);
+
+		vec2 step1 = (2.0 * vec2(tileID)) / vec2(tileNum);
+		vec2 step2 = (2.0 * vec2(tileID + ivec2(1, 1))) / vec2(tileNum);
+
+		FrustumPlanes[0] = vec4(1, 0, 0, 1 - step1.x);		// left
+		FrustumPlanes[1] = vec4(-1, 0, 0, -1 + step2.x);	// right
+		FrustumPlanes[2] = vec4(0, 1, 0, 1 - step1.y);		// bottom
+		FrustumPlanes[3] = vec4(0, -1, 0, -1 + step2.y);	// top
+		FrustumPlanes[4] = vec4(0, 0, -1, minz);			// near
+		FrustumPlanes[5] = vec4(0, 0, 1, maxz);				// far
+
+		for (int i = 0; i < 4; ++i) {
+			FrustumPlanes[i] = FrustumPlanes[i] * uniforms.matViewProj;
+			FrustumPlanes[i] /= length(FrustumPlanes[i].xyz);
+		}
+
+		FrustumPlanes[4] = FrustumPlanes[4] * uniforms.matView;
+		FrustumPlanes[5] = FrustumPlanes[5] * uniforms.matView;
+
+		FrustumPlanes[4] /= length(FrustumPlanes[4].xyz);
+		FrustumPlanes[5] /= length(FrustumPlanes[5].xyz);
+	}
+
+	barrier();
+
+	// STEP 3: cull lights
+	vec4	pos;
+	vec4	color;
+	float	dist;
+	float	radius;
+	float	alpha			= uniforms.clipPlanes.z;
+
+	uint	numlights		= uint(NUM_LIGHTS);
+	uint	numitems		= 256;
+	uint	prev;
+	uint	lightsperitem	= max(numlights / numitems, uint(1));
+	uint	remainder		= numlights % numitems;
+	uint	lightstart, lightend;
+
+	if (gl_LocalInvocationIndex < remainder) {
+		++lightsperitem;
+		lightstart = lightsperitem * gl_LocalInvocationIndex;
+	} else {
+		lightstart = remainder * (lightsperitem + 1) + (gl_LocalInvocationIndex - remainder) * lightsperitem;
+	}
+
+	lightend = min(lightstart + lightsperitem, numlights);
+
+	for (uint i = lightstart; i < lightend; ++i) {
+		pos = mix(lightbuffer.data[i].previous, lightbuffer.data[i].current, alpha);
+		radius = lightbuffer.data[i].velocity.w;
+
+		for (uint j = 0; j < 6; ++j) {
+			dist = dot(pos, FrustumPlanes[j]) + radius;
+
+			if (dist <= 0.0)
+				break;
+		}
+
+		if (dist > 0.0) {
+			prev = atomicAdd(TileLightCount, 1);
+			TileLights[prev] = i;
+		}
+	}
+
+	barrier();
+
+	// STEP 4: reconstruct world space values
+	vec4 spos = vec4(0.0, 0.0, depth, 1.0);
+	vec4 wpos;
+	vec4 wnorm = imageLoad(gbufferNormals, loc);
+	vec3 n = normalize(wnorm.xyz);
+
+	spos.xy = vec2(gl_GlobalInvocationID.xy) / vec2(size);
+	spos.xy = spos.xy * 2.0f - vec2(1.0);
+
+	wpos = uniforms.matViewProjInv * spos;
+	wpos /= wpos.w;
+
+	// STEP 5: accumulate lights
+	float lumIntensity = 80.0;	// flux / QUAD_PI
+
+	vec4 outDiffuse = texture(ambientCube, n) * ONE_OVER_PI;
+	vec4 outSpecular = vec4(0.0);
+
+	for (uint i = 0; i < TileLightCount; ++i) {
+		uint index = TileLights[i];
+
+		pos = mix(lightbuffer.data[index].previous, lightbuffer.data[index].current, alpha);
+		color = lightbuffer.data[index].color;
+		radius = lightbuffer.data[index].velocity.w;
+
+		vec3 ldir		= pos.xyz - wpos.xyz;
+		vec3 l			= normalize(ldir);
+		vec3 v			= normalize(uniforms.eyePos.xyz - wpos.xyz);
+		vec3 h			= normalize(l + v);
+
+		float dist		= length(ldir);
+		float dist2		= max(dot(ldir, ldir), 1e-4);
+		float falloff	= (lumIntensity / dist2) * max(0.0, 1.0 - dist / radius);
+
+		float costheta	= max(0.0, dot(n, l));
+		float fs		= ONE_OVER_PI * pow(clamp(dot(n, h), 0.0, 1.0), 80.0);
+
+		// add Lambertian term here
+		outDiffuse += color * ONE_OVER_PI * falloff * costheta;
+		outSpecular += color * fs * falloff * costheta;
+	}
+
+	imageStore(accumDiffuse, loc, outDiffuse);
+	imageStore(accumSpecular, loc, outSpecular);
+}

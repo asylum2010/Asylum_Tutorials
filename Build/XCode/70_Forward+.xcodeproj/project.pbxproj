@@ -1,0 +1,477 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A6BD7A6022B79FD400A471B0 /* screenquad.metal in Sources */ = {isa = PBXBuildFile; fileRef = A6BD7A5F22B79FD400A471B0 /* screenquad.metal */; };
+		A6BD7A6222B7DC6900A471B0 /* uffizi_diff_irrad.dds in Resources */ = {isa = PBXBuildFile; fileRef = A6BD7A6122B7DC6900A471B0 /* uffizi_diff_irrad.dds */; };
+		A6E79BEE22AA74E800FE979F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A6E79BEB22AA74E800FE979F /* Assets.xcassets */; };
+		A6E79BF222AA74F200FE979F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A6E79BF022AA74F200FE979F /* Main.storyboard */; };
+		A6E79BFD22AA753600FE979F /* textures in Resources */ = {isa = PBXBuildFile; fileRef = A6E79BFB22AA753600FE979F /* textures */; };
+		A6E79BFE22AA753600FE979F /* sponza.qm in Resources */ = {isa = PBXBuildFile; fileRef = A6E79BFC22AA753600FE979F /* sponza.qm */; };
+		A6E79C0022AA758A00FE979F /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = A6E79BFF22AA758A00FE979F /* main.mm */; };
+		A6E79C0222AA75C300FE979F /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6E79C0122AA75C300FE979F /* Cocoa.framework */; };
+		A6E79C0522AA75CC00FE979F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6E79C0322AA75CB00FE979F /* MetalKit.framework */; };
+		A6E79C0622AA75CC00FE979F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6E79C0422AA75CB00FE979F /* Metal.framework */; };
+		A6E79C1322AA761800FE979F /* 3Dmath.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C0822AA761700FE979F /* 3Dmath.cpp */; };
+		A6E79C1422AA761800FE979F /* macOSapplication.mm in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C0922AA761700FE979F /* macOSapplication.mm */; };
+		A6E79C1522AA761800FE979F /* dds.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C0A22AA761700FE979F /* dds.cpp */; };
+		A6E79C1622AA761800FE979F /* mtlext.mm in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C0B22AA761700FE979F /* mtlext.mm */; };
+		A6E79C1722AA761800FE979F /* spectatorcamera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C0D22AA761700FE979F /* spectatorcamera.cpp */; };
+		A6E79C1822AA761800FE979F /* application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C1122AA761700FE979F /* application.cpp */; };
+		A6E79C1E22AA762700FE979F /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C1A22AA762700FE979F /* AppDelegate.mm */; };
+		A6E79C1F22AA762700FE979F /* MetalViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C1D22AA762700FE979F /* MetalViewController.mm */; };
+		A6E79C2622AFD63100FE979F /* geometryutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C2422AFD63000FE979F /* geometryutils.cpp */; };
+		A6E79C2C22B11E7B00FE979F /* lightaccum.metal in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C2A22B11E7B00FE979F /* lightaccum.metal */; };
+		A6E79C2D22B11E7B00FE979F /* lightcull.metal in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C2B22B11E7B00FE979F /* lightcull.metal */; };
+		A6E79C2F22B25E0600FE979F /* zonly.metal in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C2E22B25E0600FE979F /* zonly.metal */; };
+		A6E79C3122B3B8F100FE979F /* tonemap.metal in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C3022B3B8F100FE979F /* tonemap.metal */; };
+		A6E79C3422B3BFDA00FE979F /* flare1.png in Resources */ = {isa = PBXBuildFile; fileRef = A6E79C3322B3BFDA00FE979F /* flare1.png */; };
+		A6E79C3822B3C0AE00FE979F /* flares.metal in Sources */ = {isa = PBXBuildFile; fileRef = A6E79C3722B3C0AE00FE979F /* flares.metal */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A6BD7A5F22B79FD400A471B0 /* screenquad.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = screenquad.metal; path = ../../Media/ShadersMTL/screenquad.metal; sourceTree = "<group>"; };
+		A6BD7A6122B7DC6900A471B0 /* uffizi_diff_irrad.dds */ = {isa = PBXFileReference; lastKnownFileType = file; name = uffizi_diff_irrad.dds; path = ../../Media/Textures/uffizi_diff_irrad.dds; sourceTree = "<group>"; };
+		A6E79BD422AA745400FE979F /* 70_Forward+.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "70_Forward+.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6E79BEB22AA74E800FE979F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = "70_Forward+/Assets.xcassets"; sourceTree = "<group>"; };
+		A6E79BEC22AA74E800FE979F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = "70_Forward+/Info.plist"; sourceTree = "<group>"; };
+		A6E79BED22AA74E800FE979F /* _0_Forward_.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; name = _0_Forward_.entitlements; path = "70_Forward+/_0_Forward_.entitlements"; sourceTree = "<group>"; };
+		A6E79BF122AA74F200FE979F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = "70_Forward+/Base.lproj/Main.storyboard"; sourceTree = "<group>"; };
+		A6E79BF722AA751F00FE979F /* Release.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		A6E79BF822AA751F00FE979F /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		A6E79BFB22AA753600FE979F /* textures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = textures; path = ../../Media/MeshesQM/sponza/textures; sourceTree = "<group>"; };
+		A6E79BFC22AA753600FE979F /* sponza.qm */ = {isa = PBXFileReference; lastKnownFileType = file; name = sponza.qm; path = ../../Media/MeshesQM/sponza/sponza.qm; sourceTree = "<group>"; };
+		A6E79BFF22AA758A00FE979F /* main.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = main.mm; path = ../../ShaderTutors/70_ForwardPlus/main.mm; sourceTree = "<group>"; };
+		A6E79C0122AA75C300FE979F /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		A6E79C0322AA75CB00FE979F /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		A6E79C0422AA75CB00FE979F /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		A6E79C0722AA761700FE979F /* 3Dmath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = 3Dmath.h; path = ../../ShaderTutors/Common/3Dmath.h; sourceTree = "<group>"; };
+		A6E79C0822AA761700FE979F /* 3Dmath.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 3Dmath.cpp; path = ../../ShaderTutors/Common/3Dmath.cpp; sourceTree = "<group>"; };
+		A6E79C0922AA761700FE979F /* macOSapplication.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSapplication.mm; path = ../../ShaderTutors/Common/macOSapplication.mm; sourceTree = "<group>"; };
+		A6E79C0A22AA761700FE979F /* dds.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = dds.cpp; path = ../../ShaderTutors/Common/dds.cpp; sourceTree = "<group>"; };
+		A6E79C0B22AA761700FE979F /* mtlext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = mtlext.mm; path = ../../ShaderTutors/Common/mtlext.mm; sourceTree = "<group>"; };
+		A6E79C0C22AA761700FE979F /* macOSapplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macOSapplication.h; path = ../../ShaderTutors/Common/macOSapplication.h; sourceTree = "<group>"; };
+		A6E79C0D22AA761700FE979F /* spectatorcamera.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = spectatorcamera.cpp; path = ../../ShaderTutors/Common/spectatorcamera.cpp; sourceTree = "<group>"; };
+		A6E79C0E22AA761700FE979F /* spectatorcamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = spectatorcamera.h; path = ../../ShaderTutors/Common/spectatorcamera.h; sourceTree = "<group>"; };
+		A6E79C0F22AA761700FE979F /* mtlext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtlext.h; path = ../../ShaderTutors/Common/mtlext.h; sourceTree = "<group>"; };
+		A6E79C1022AA761700FE979F /* application.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = application.h; path = ../../ShaderTutors/Common/application.h; sourceTree = "<group>"; };
+		A6E79C1122AA761700FE979F /* application.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = application.cpp; path = ../../ShaderTutors/Common/application.cpp; sourceTree = "<group>"; };
+		A6E79C1222AA761700FE979F /* dds.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dds.h; path = ../../ShaderTutors/Common/dds.h; sourceTree = "<group>"; };
+		A6E79C1A22AA762700FE979F /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = Common/AppDelegate.mm; sourceTree = "<group>"; };
+		A6E79C1B22AA762700FE979F /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = Common/AppDelegate.h; sourceTree = "<group>"; };
+		A6E79C1C22AA762700FE979F /* MetalViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalViewController.h; path = Common/MetalViewController.h; sourceTree = "<group>"; };
+		A6E79C1D22AA762700FE979F /* MetalViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalViewController.mm; path = Common/MetalViewController.mm; sourceTree = "<group>"; };
+		A6E79C2422AFD63000FE979F /* geometryutils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = geometryutils.cpp; path = ../../ShaderTutors/Common/geometryutils.cpp; sourceTree = "<group>"; };
+		A6E79C2522AFD63000FE979F /* geometryutils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = geometryutils.h; path = ../../ShaderTutors/Common/geometryutils.h; sourceTree = "<group>"; };
+		A6E79C2A22B11E7B00FE979F /* lightaccum.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = lightaccum.metal; path = ../../Media/ShadersMTL/lightaccum.metal; sourceTree = "<group>"; };
+		A6E79C2B22B11E7B00FE979F /* lightcull.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = lightcull.metal; path = ../../Media/ShadersMTL/lightcull.metal; sourceTree = "<group>"; };
+		A6E79C2E22B25E0600FE979F /* zonly.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = zonly.metal; path = ../../Media/ShadersMTL/zonly.metal; sourceTree = "<group>"; };
+		A6E79C3022B3B8F100FE979F /* tonemap.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = tonemap.metal; path = ../../Media/ShadersMTL/tonemap.metal; sourceTree = "<group>"; };
+		A6E79C3222B3BB2000FE979F /* common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = common.h; path = ../../Media/ShadersMTL/common.h; sourceTree = "<group>"; };
+		A6E79C3322B3BFDA00FE979F /* flare1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = flare1.png; path = ../../Media/Textures/flare1.png; sourceTree = "<group>"; };
+		A6E79C3722B3C0AE00FE979F /* flares.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = flares.metal; path = ../../Media/ShadersMTL/flares.metal; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A6E79BD122AA745400FE979F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6E79C0522AA75CC00FE979F /* MetalKit.framework in Frameworks */,
+				A6E79C0622AA75CC00FE979F /* Metal.framework in Frameworks */,
+				A6E79C0222AA75C300FE979F /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A6E79BCB22AA745400FE979F = {
+			isa = PBXGroup;
+			children = (
+				A6E79BFF22AA758A00FE979F /* main.mm */,
+				A6E79BF622AA750F00FE979F /* Common */,
+				A6E79BF522AA750800FE979F /* Media */,
+				A6E79BF422AA74FF00FE979F /* Config */,
+				A6E79BF322AA74F700FE979F /* Frameworks */,
+				A6E79BD622AA745400FE979F /* Supporting Files */,
+				A6E79BD522AA745400FE979F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A6E79BD522AA745400FE979F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A6E79BD422AA745400FE979F /* 70_Forward+.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A6E79BD622AA745400FE979F /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				A6E79BEC22AA74E800FE979F /* Info.plist */,
+				A6E79BF022AA74F200FE979F /* Main.storyboard */,
+				A6E79BED22AA74E800FE979F /* _0_Forward_.entitlements */,
+				A6E79BEB22AA74E800FE979F /* Assets.xcassets */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		A6E79BF322AA74F700FE979F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A6E79C0422AA75CB00FE979F /* Metal.framework */,
+				A6E79C0322AA75CB00FE979F /* MetalKit.framework */,
+				A6E79C0122AA75C300FE979F /* Cocoa.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A6E79BF422AA74FF00FE979F /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				A6E79BF822AA751F00FE979F /* Debug.xcconfig */,
+				A6E79BF722AA751F00FE979F /* Release.xcconfig */,
+			);
+			name = Config;
+			sourceTree = "<group>";
+		};
+		A6E79BF522AA750800FE979F /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				A6BD7A6122B7DC6900A471B0 /* uffizi_diff_irrad.dds */,
+				A6BD7A5F22B79FD400A471B0 /* screenquad.metal */,
+				A6E79C3722B3C0AE00FE979F /* flares.metal */,
+				A6E79C3322B3BFDA00FE979F /* flare1.png */,
+				A6E79C3222B3BB2000FE979F /* common.h */,
+				A6E79C3022B3B8F100FE979F /* tonemap.metal */,
+				A6E79C2E22B25E0600FE979F /* zonly.metal */,
+				A6E79C2A22B11E7B00FE979F /* lightaccum.metal */,
+				A6E79C2B22B11E7B00FE979F /* lightcull.metal */,
+				A6E79BFC22AA753600FE979F /* sponza.qm */,
+				A6E79BFB22AA753600FE979F /* textures */,
+			);
+			name = Media;
+			sourceTree = "<group>";
+		};
+		A6E79BF622AA750F00FE979F /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				A6E79C1922AA761B00FE979F /* macOS */,
+				A6E79C2422AFD63000FE979F /* geometryutils.cpp */,
+				A6E79C2522AFD63000FE979F /* geometryutils.h */,
+				A6E79C0822AA761700FE979F /* 3Dmath.cpp */,
+				A6E79C0722AA761700FE979F /* 3Dmath.h */,
+				A6E79C1122AA761700FE979F /* application.cpp */,
+				A6E79C1022AA761700FE979F /* application.h */,
+				A6E79C0A22AA761700FE979F /* dds.cpp */,
+				A6E79C1222AA761700FE979F /* dds.h */,
+				A6E79C0C22AA761700FE979F /* macOSapplication.h */,
+				A6E79C0922AA761700FE979F /* macOSapplication.mm */,
+				A6E79C0F22AA761700FE979F /* mtlext.h */,
+				A6E79C0B22AA761700FE979F /* mtlext.mm */,
+				A6E79C0D22AA761700FE979F /* spectatorcamera.cpp */,
+				A6E79C0E22AA761700FE979F /* spectatorcamera.h */,
+			);
+			name = Common;
+			sourceTree = "<group>";
+		};
+		A6E79C1922AA761B00FE979F /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				A6E79C1B22AA762700FE979F /* AppDelegate.h */,
+				A6E79C1A22AA762700FE979F /* AppDelegate.mm */,
+				A6E79C1C22AA762700FE979F /* MetalViewController.h */,
+				A6E79C1D22AA762700FE979F /* MetalViewController.mm */,
+			);
+			name = macOS;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A6E79BD322AA745400FE979F /* 70_Forward+ */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A6E79BE822AA745400FE979F /* Build configuration list for PBXNativeTarget "70_Forward+" */;
+			buildPhases = (
+				A6E79BD022AA745400FE979F /* Sources */,
+				A6E79BD122AA745400FE979F /* Frameworks */,
+				A6E79BD222AA745400FE979F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "70_Forward+";
+			productName = "70_Forward+";
+			productReference = A6E79BD422AA745400FE979F /* 70_Forward+.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A6E79BCC22AA745400FE979F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1020;
+				ORGANIZATIONNAME = Asylum;
+				TargetAttributes = {
+					A6E79BD322AA745400FE979F = {
+						CreatedOnToolsVersion = 10.2;
+					};
+				};
+			};
+			buildConfigurationList = A6E79BCF22AA745400FE979F /* Build configuration list for PBXProject "70_Forward+" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A6E79BCB22AA745400FE979F;
+			productRefGroup = A6E79BD522AA745400FE979F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A6E79BD322AA745400FE979F /* 70_Forward+ */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A6E79BD222AA745400FE979F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6E79BF222AA74F200FE979F /* Main.storyboard in Resources */,
+				A6E79BFD22AA753600FE979F /* textures in Resources */,
+				A6BD7A6222B7DC6900A471B0 /* uffizi_diff_irrad.dds in Resources */,
+				A6E79BFE22AA753600FE979F /* sponza.qm in Resources */,
+				A6E79BEE22AA74E800FE979F /* Assets.xcassets in Resources */,
+				A6E79C3422B3BFDA00FE979F /* flare1.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A6E79BD022AA745400FE979F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6E79C1722AA761800FE979F /* spectatorcamera.cpp in Sources */,
+				A6E79C2C22B11E7B00FE979F /* lightaccum.metal in Sources */,
+				A6E79C2F22B25E0600FE979F /* zonly.metal in Sources */,
+				A6E79C1322AA761800FE979F /* 3Dmath.cpp in Sources */,
+				A6E79C1E22AA762700FE979F /* AppDelegate.mm in Sources */,
+				A6E79C1422AA761800FE979F /* macOSapplication.mm in Sources */,
+				A6E79C1F22AA762700FE979F /* MetalViewController.mm in Sources */,
+				A6E79C2D22B11E7B00FE979F /* lightcull.metal in Sources */,
+				A6E79C3822B3C0AE00FE979F /* flares.metal in Sources */,
+				A6E79C3122B3B8F100FE979F /* tonemap.metal in Sources */,
+				A6E79C0022AA758A00FE979F /* main.mm in Sources */,
+				A6E79C1622AA761800FE979F /* mtlext.mm in Sources */,
+				A6BD7A6022B79FD400A471B0 /* screenquad.metal in Sources */,
+				A6E79C1822AA761800FE979F /* application.cpp in Sources */,
+				A6E79C1522AA761800FE979F /* dds.cpp in Sources */,
+				A6E79C2622AFD63100FE979F /* geometryutils.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		A6E79BF022AA74F200FE979F /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A6E79BF122AA74F200FE979F /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		A6E79BE622AA745400FE979F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		A6E79BE722AA745400FE979F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		A6E79BE922AA745400FE979F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A6E79BF822AA751F00FE979F /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "70_Forward+/_0_Forward_.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 33TJGE8Y99;
+				INFOPLIST_FILE = "70_Forward+/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MTL_LANGUAGE_REVISION = Metal12;
+				PRODUCT_BUNDLE_IDENTIFIER = "Asylum.-0-Forward-";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A6E79BEA22AA745400FE979F /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A6E79BF722AA751F00FE979F /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "70_Forward+/_0_Forward_.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 33TJGE8Y99;
+				INFOPLIST_FILE = "70_Forward+/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MTL_LANGUAGE_REVISION = Metal12;
+				PRODUCT_BUNDLE_IDENTIFIER = "Asylum.-0-Forward-";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A6E79BCF22AA745400FE979F /* Build configuration list for PBXProject "70_Forward+" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A6E79BE622AA745400FE979F /* Debug */,
+				A6E79BE722AA745400FE979F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A6E79BE822AA745400FE979F /* Build configuration list for PBXNativeTarget "70_Forward+" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A6E79BE922AA745400FE979F /* Debug */,
+				A6E79BEA22AA745400FE979F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A6E79BCC22AA745400FE979F /* Project object */;
+}

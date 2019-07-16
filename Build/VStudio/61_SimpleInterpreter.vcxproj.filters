@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\OtherTutors\61_SimpleInterpreter\compiler.cpp" />
+    <ClCompile Include="..\..\OtherTutors\61_SimpleInterpreter\interpreter.cpp" />
+    <ClCompile Include="..\..\OtherTutors\61_SimpleInterpreter\main.cpp" />
+    <ClCompile Include="..\..\OtherTutors\61_SimpleInterpreter\special.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\OtherTutors\61_SimpleInterpreter\interpreter.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\OtherTutors\61_SimpleInterpreter\lexer.l">
+      <Filter>Parser</Filter>
+    </None>
+    <None Include="..\..\OtherTutors\61_SimpleInterpreter\parser.y">
+      <Filter>Parser</Filter>
+    </None>
+    <None Include="..\..\Media\Scripts\helloworld.p">
+      <Filter>Scripts</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Parser">
+      <UniqueIdentifier>{1bef9a12-40d3-42c5-85cd-0b58448f6b5d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scripts">
+      <UniqueIdentifier>{8358adb5-05bf-4b1e-89c2-d0dbf7ca8951}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\OtherTutors\61_AdvancedInterpreter\bytestream.cpp" />
+    <ClCompile Include="..\..\OtherTutors\61_AdvancedInterpreter\compiler.cpp" />
+    <ClCompile Include="..\..\OtherTutors\61_AdvancedInterpreter\interpreter.cpp" />
+    <ClCompile Include="..\..\OtherTutors\61_AdvancedInterpreter\main.cpp" />
+    <ClCompile Include="..\..\OtherTutors\61_AdvancedInterpreter\special.cpp" />
+    <ClCompile Include="..\..\OtherTutors\61_AdvancedInterpreter\variadic_pointer_set.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\OtherTutors\61_AdvancedInterpreter\bytestream.h" />
+    <ClInclude Include="..\..\OtherTutors\61_AdvancedInterpreter\interpreter.h" />
+    <ClInclude Include="..\..\OtherTutors\61_AdvancedInterpreter\types.h" />
+    <ClInclude Include="..\..\OtherTutors\61_AdvancedInterpreter\variadic_pointer_set.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Media\Scripts\arithmetics.p">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\..\Media\Scripts\bigtest.p">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\..\Media\Scripts\factorial.p">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\..\Media\Scripts\helloworld.p">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\..\Media\Scripts\lnko.p">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\..\Media\Scripts\scopes.p">
+      <Filter>Scripts</Filter>
+    </None>
+    <None Include="..\..\OtherTutors\61_AdvancedInterpreter\parser.y">
+      <Filter>Parser</Filter>
+    </None>
+    <None Include="..\..\OtherTutors\61_AdvancedInterpreter\lexer.l">
+      <Filter>Parser</Filter>
+    </None>
+    <None Include="..\..\Media\Scripts\primetest.p">
+      <Filter>Scripts</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Parser">
+      <UniqueIdentifier>{9bc8020d-439d-4df9-b1d7-f51d34156411}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scripts">
+      <UniqueIdentifier>{0bbf6959-29e7-4ed6-8dca-e2e004f75a0b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
