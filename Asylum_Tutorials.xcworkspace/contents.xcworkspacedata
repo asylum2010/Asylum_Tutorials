@@ -5,6 +5,15 @@
       location = "container:"
       name = "macOS">
       <FileRef
+         location = "group:Build/XCode/70_UniformStreaming.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:Build/XCode/70_DepthBlit.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:Build/XCode/70_MetalWithoutARC.xcodeproj">
+      </FileRef>
+      <FileRef
          location = "group:Build/XCode/70_Forward+.xcodeproj">
       </FileRef>
       <FileRef

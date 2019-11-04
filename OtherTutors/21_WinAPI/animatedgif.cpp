@@ -27,7 +27,7 @@ void AnimatedGIF::Dispose()
 
 	if (nativeImage) {
 		Gdiplus::DllExports::GdipDisposeImage(nativeImage);
-		nativeImage = 0;
+		nativeImage = NULL;
 	}
 }
 
@@ -73,7 +73,7 @@ bool AnimatedGIF::SetImage(const void* buff, SIZE_T buffsize)
 
 		if (stream) {
 			stream->Release();
-			stream = 0;
+			stream = NULL;
 		}
 
 		CreateStreamOnHGlobal(hBuffer, FALSE, &stream);

@@ -692,7 +692,6 @@ void Render(float alpha, float elapsedtime)
 			auto depthattachment = renderpassdesc.depthAttachment;
 			auto stencilattachment = renderpassdesc.stencilAttachment;
 			
-			renderpassdesc.depthAttachment.loadAction = MTLLoadActionDontCare;
 			renderpassdesc.depthAttachment = nil;
 			renderpassdesc.stencilAttachment = nil;
 			

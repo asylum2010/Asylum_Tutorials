@@ -35,7 +35,10 @@ bool macOSApplication::Present()
 void macOSApplication::Run()
 {
 	const char* argv[] = { "AsylumSample" };
-	NSApplicationMain(1, argv);
+	
+	@autoreleasepool {
+		NSApplicationMain(1, argv);
+	}
 }
 
 void macOSApplication::SetTitle(const char* title)

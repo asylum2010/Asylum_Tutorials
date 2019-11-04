@@ -38,13 +38,13 @@ struct MetalAttributeRange
 
 struct MetalMaterial
 {
-	Math::Color		diffuse;
-	Math::Color		ambient;
-	Math::Color		specular;
-	Math::Color		emissive;
-	float			power;
-	id<MTLTexture>	texture;
-	id<MTLTexture>	normalMap;
+	Math::Color			diffuse;
+	Math::Color			ambient;
+	Math::Color			specular;
+	Math::Color			emissive;
+	float				power;
+	id<MTLTexture>		texture;
+	id<MTLTexture>		normalMap;
 	
 	MetalMaterial();
 	~MetalMaterial();

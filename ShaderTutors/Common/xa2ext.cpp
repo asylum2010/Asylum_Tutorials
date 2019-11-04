@@ -118,7 +118,7 @@ XA2Sound::~XA2Sound()
 	}
 }
 
-void XA2Sound::VerifyRemoved(XA2PassKey)
+void XA2Sound::VerifyRemoved(XA2Passkey)
 {
 	removed.set_value();
 }
@@ -180,7 +180,7 @@ void XA2Sound::ResetReader()
 	reader->SetCurrentPosition(GUID_NULL, var);
 }
 
-void XA2Sound::PullData(XA2PassKey)
+void XA2Sound::PullData(XA2Passkey)
 {
 	if (freebuffers == 0)
 		return;

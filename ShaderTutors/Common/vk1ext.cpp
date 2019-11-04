@@ -907,7 +907,7 @@ VulkanImage* VulkanImage::Create2D(VkFormat format, uint32_t width, uint32_t hei
 		samplercreateinfo.addressModeV		= VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplercreateinfo.addressModeW		= VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplercreateinfo.mipLodBias		= 0.0;
-		samplercreateinfo.anisotropyEnable	= VK_FALSE,
+		samplercreateinfo.anisotropyEnable	= VK_FALSE;
 		samplercreateinfo.maxAnisotropy		= 0;
 		samplercreateinfo.compareOp			= VK_COMPARE_OP_NEVER;
 		samplercreateinfo.minLod			= 0.0f;

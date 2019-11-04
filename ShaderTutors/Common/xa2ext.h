@@ -21,10 +21,11 @@
 #define STREAM_BUFFER_SIZE		65536	// 64 KB; shouldn't be larger than XAUDIO2_MAX_BUFFER_BYTES
 #define STREAM_BUFFER_COUNT		3
 
-class XA2PassKey
+// NOTE: passkey idiom
+class XA2Passkey
 {
 	friend class XA2AudioStreamer;
-	XA2PassKey() {}
+	XA2Passkey() {}
 };
 
 class XA2Sound : public IXAudio2VoiceCallback
@@ -62,10 +63,10 @@ private:
 
 public:
 	// protected methods for XA2AudioStreamer
-	void PullData(XA2PassKey);
-	void VerifyRemoved(XA2PassKey);
+	void PullData(XA2Passkey);
+	void VerifyRemoved(XA2Passkey);
 
-	bool IsMarkedForRemove(XA2PassKey) const	{ return ismarked; }
+	bool IsMarkedForRemove(XA2Passkey) const	{ return ismarked; }
 
 public:
 	XA2Sound(XA2AudioStreamer* streamer, const std::wstring& file);

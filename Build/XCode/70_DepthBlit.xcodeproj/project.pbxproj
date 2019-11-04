@@ -1,0 +1,457 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A662ED402315687200F8DDDE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A662ED3D2315687200F8DDDE /* Assets.xcassets */; };
+		A662ED442315687C00F8DDDE /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A662ED422315687C00F8DDDE /* Main.storyboard */; };
+		A662ED462315689C00F8DDDE /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A662ED452315689C00F8DDDE /* Metal.framework */; };
+		A662ED48231568A200F8DDDE /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A662ED47231568A200F8DDDE /* MetalKit.framework */; };
+		A662ED4A231568A800F8DDDE /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A662ED49231568A800F8DDDE /* Cocoa.framework */; };
+		A662ED4D231568B900F8DDDE /* Release.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = A662ED4B231568B900F8DDDE /* Release.xcconfig */; };
+		A662ED4E231568B900F8DDDE /* Debug.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = A662ED4C231568B900F8DDDE /* Debug.xcconfig */; };
+		A662ED51231568F300F8DDDE /* blinnphong.metal in Sources */ = {isa = PBXBuildFile; fileRef = A662ED4F231568F300F8DDDE /* blinnphong.metal */; };
+		A662ED52231568F300F8DDDE /* coloredgrid.metal in Sources */ = {isa = PBXBuildFile; fileRef = A662ED50231568F300F8DDDE /* coloredgrid.metal */; };
+		A662ED542315690000F8DDDE /* teapot.qm in Resources */ = {isa = PBXBuildFile; fileRef = A662ED532315690000F8DDDE /* teapot.qm */; };
+		A662ED632315694400F8DDDE /* basiccamera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A662ED562315694400F8DDDE /* basiccamera.cpp */; };
+		A662ED642315694400F8DDDE /* application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A662ED572315694400F8DDDE /* application.cpp */; };
+		A662ED652315694400F8DDDE /* 3Dmath.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A662ED5A2315694400F8DDDE /* 3Dmath.cpp */; };
+		A662ED662315694400F8DDDE /* dds.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A662ED5C2315694400F8DDDE /* dds.cpp */; };
+		A662ED672315694400F8DDDE /* macOSapplication.mm in Sources */ = {isa = PBXBuildFile; fileRef = A662ED5D2315694400F8DDDE /* macOSapplication.mm */; };
+		A662ED682315694400F8DDDE /* mtlext.mm in Sources */ = {isa = PBXBuildFile; fileRef = A662ED5F2315694400F8DDDE /* mtlext.mm */; };
+		A662ED692315694400F8DDDE /* geometryutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A662ED622315694400F8DDDE /* geometryutils.cpp */; };
+		A662ED6F2315697E00F8DDDE /* MetalViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A662ED6D2315697E00F8DDDE /* MetalViewController.mm */; };
+		A662ED702315697E00F8DDDE /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = A662ED6E2315697E00F8DDDE /* AppDelegate.mm */; };
+		A662ED72231569F000F8DDDE /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = A662ED71231569F000F8DDDE /* main.mm */; };
+		A662ED7723156EBA00F8DDDE /* screenquad.metal in Sources */ = {isa = PBXBuildFile; fileRef = A662ED7523156EBA00F8DDDE /* screenquad.metal */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A662ED21231567D900F8DDDE /* 70_DepthBlit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 70_DepthBlit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A662ED3D2315687200F8DDDE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 70_DepthBlit/Assets.xcassets; sourceTree = "<group>"; };
+		A662ED3E2315687200F8DDDE /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = 70_DepthBlit/Info.plist; sourceTree = "<group>"; };
+		A662ED3F2315687200F8DDDE /* _0_DepthBlit.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; name = _0_DepthBlit.entitlements; path = 70_DepthBlit/_0_DepthBlit.entitlements; sourceTree = "<group>"; };
+		A662ED432315687C00F8DDDE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = 70_DepthBlit/Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		A662ED452315689C00F8DDDE /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		A662ED47231568A200F8DDDE /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		A662ED49231568A800F8DDDE /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		A662ED4B231568B900F8DDDE /* Release.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		A662ED4C231568B900F8DDDE /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		A662ED4F231568F300F8DDDE /* blinnphong.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = blinnphong.metal; path = ../../Media/ShadersMTL/blinnphong.metal; sourceTree = "<group>"; };
+		A662ED50231568F300F8DDDE /* coloredgrid.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = coloredgrid.metal; path = ../../Media/ShadersMTL/coloredgrid.metal; sourceTree = "<group>"; };
+		A662ED532315690000F8DDDE /* teapot.qm */ = {isa = PBXFileReference; lastKnownFileType = file; name = teapot.qm; path = ../../Media/MeshesQM/teapot.qm; sourceTree = "<group>"; };
+		A662ED552315694400F8DDDE /* 3Dmath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = 3Dmath.h; path = ../../ShaderTutors/Common/3Dmath.h; sourceTree = "<group>"; };
+		A662ED562315694400F8DDDE /* basiccamera.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = basiccamera.cpp; path = ../../ShaderTutors/Common/basiccamera.cpp; sourceTree = "<group>"; };
+		A662ED572315694400F8DDDE /* application.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = application.cpp; path = ../../ShaderTutors/Common/application.cpp; sourceTree = "<group>"; };
+		A662ED582315694400F8DDDE /* application.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = application.h; path = ../../ShaderTutors/Common/application.h; sourceTree = "<group>"; };
+		A662ED592315694400F8DDDE /* mtlext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtlext.h; path = ../../ShaderTutors/Common/mtlext.h; sourceTree = "<group>"; };
+		A662ED5A2315694400F8DDDE /* 3Dmath.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 3Dmath.cpp; path = ../../ShaderTutors/Common/3Dmath.cpp; sourceTree = "<group>"; };
+		A662ED5B2315694400F8DDDE /* dds.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dds.h; path = ../../ShaderTutors/Common/dds.h; sourceTree = "<group>"; };
+		A662ED5C2315694400F8DDDE /* dds.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = dds.cpp; path = ../../ShaderTutors/Common/dds.cpp; sourceTree = "<group>"; };
+		A662ED5D2315694400F8DDDE /* macOSapplication.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSapplication.mm; path = ../../ShaderTutors/Common/macOSapplication.mm; sourceTree = "<group>"; };
+		A662ED5E2315694400F8DDDE /* basiccamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = basiccamera.h; path = ../../ShaderTutors/Common/basiccamera.h; sourceTree = "<group>"; };
+		A662ED5F2315694400F8DDDE /* mtlext.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = mtlext.mm; path = ../../ShaderTutors/Common/mtlext.mm; sourceTree = "<group>"; };
+		A662ED602315694400F8DDDE /* macOSapplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macOSapplication.h; path = ../../ShaderTutors/Common/macOSapplication.h; sourceTree = "<group>"; };
+		A662ED612315694400F8DDDE /* geometryutils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = geometryutils.h; path = ../../ShaderTutors/Common/geometryutils.h; sourceTree = "<group>"; };
+		A662ED622315694400F8DDDE /* geometryutils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = geometryutils.cpp; path = ../../ShaderTutors/Common/geometryutils.cpp; sourceTree = "<group>"; };
+		A662ED6B2315697E00F8DDDE /* MetalViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalViewController.h; path = Common/MetalViewController.h; sourceTree = "<group>"; };
+		A662ED6C2315697E00F8DDDE /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = Common/AppDelegate.h; sourceTree = "<group>"; };
+		A662ED6D2315697E00F8DDDE /* MetalViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalViewController.mm; path = Common/MetalViewController.mm; sourceTree = "<group>"; };
+		A662ED6E2315697E00F8DDDE /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = Common/AppDelegate.mm; sourceTree = "<group>"; };
+		A662ED71231569F000F8DDDE /* main.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = main.mm; path = ../../ShaderTutors/70_DepthBlit/main.mm; sourceTree = "<group>"; };
+		A662ED7523156EBA00F8DDDE /* screenquad.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = screenquad.metal; path = ../../Media/ShadersMTL/screenquad.metal; sourceTree = "<group>"; };
+		A662ED7623156EBA00F8DDDE /* common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = common.h; path = ../../Media/ShadersMTL/common.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A662ED1E231567D900F8DDDE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A662ED4A231568A800F8DDDE /* Cocoa.framework in Frameworks */,
+				A662ED48231568A200F8DDDE /* MetalKit.framework in Frameworks */,
+				A662ED462315689C00F8DDDE /* Metal.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A662ED18231567D900F8DDDE = {
+			isa = PBXGroup;
+			children = (
+				A662ED71231569F000F8DDDE /* main.mm */,
+				A662ED3C2315685300F8DDDE /* Common */,
+				A662ED3B2315684C00F8DDDE /* Media */,
+				A662ED3A2315684300F8DDDE /* Config */,
+				A662ED392315683B00F8DDDE /* Frameworks */,
+				A662ED382315682B00F8DDDE /* Supporting Files */,
+				A662ED22231567D900F8DDDE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A662ED22231567D900F8DDDE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A662ED21231567D900F8DDDE /* 70_DepthBlit.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A662ED382315682B00F8DDDE /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				A662ED422315687C00F8DDDE /* Main.storyboard */,
+				A662ED3F2315687200F8DDDE /* _0_DepthBlit.entitlements */,
+				A662ED3D2315687200F8DDDE /* Assets.xcassets */,
+				A662ED3E2315687200F8DDDE /* Info.plist */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		A662ED392315683B00F8DDDE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A662ED49231568A800F8DDDE /* Cocoa.framework */,
+				A662ED47231568A200F8DDDE /* MetalKit.framework */,
+				A662ED452315689C00F8DDDE /* Metal.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A662ED3A2315684300F8DDDE /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				A662ED4C231568B900F8DDDE /* Debug.xcconfig */,
+				A662ED4B231568B900F8DDDE /* Release.xcconfig */,
+			);
+			name = Config;
+			sourceTree = "<group>";
+		};
+		A662ED3B2315684C00F8DDDE /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				A662ED532315690000F8DDDE /* teapot.qm */,
+				A662ED7623156EBA00F8DDDE /* common.h */,
+				A662ED7523156EBA00F8DDDE /* screenquad.metal */,
+				A662ED4F231568F300F8DDDE /* blinnphong.metal */,
+				A662ED50231568F300F8DDDE /* coloredgrid.metal */,
+			);
+			name = Media;
+			sourceTree = "<group>";
+		};
+		A662ED3C2315685300F8DDDE /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				A662ED6A2315696F00F8DDDE /* macOS */,
+				A662ED5A2315694400F8DDDE /* 3Dmath.cpp */,
+				A662ED552315694400F8DDDE /* 3Dmath.h */,
+				A662ED572315694400F8DDDE /* application.cpp */,
+				A662ED582315694400F8DDDE /* application.h */,
+				A662ED562315694400F8DDDE /* basiccamera.cpp */,
+				A662ED5E2315694400F8DDDE /* basiccamera.h */,
+				A662ED5C2315694400F8DDDE /* dds.cpp */,
+				A662ED5B2315694400F8DDDE /* dds.h */,
+				A662ED622315694400F8DDDE /* geometryutils.cpp */,
+				A662ED612315694400F8DDDE /* geometryutils.h */,
+				A662ED602315694400F8DDDE /* macOSapplication.h */,
+				A662ED5D2315694400F8DDDE /* macOSapplication.mm */,
+				A662ED592315694400F8DDDE /* mtlext.h */,
+				A662ED5F2315694400F8DDDE /* mtlext.mm */,
+			);
+			name = Common;
+			sourceTree = "<group>";
+		};
+		A662ED6A2315696F00F8DDDE /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				A662ED6C2315697E00F8DDDE /* AppDelegate.h */,
+				A662ED6E2315697E00F8DDDE /* AppDelegate.mm */,
+				A662ED6B2315697E00F8DDDE /* MetalViewController.h */,
+				A662ED6D2315697E00F8DDDE /* MetalViewController.mm */,
+			);
+			name = macOS;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A662ED20231567D900F8DDDE /* 70_DepthBlit */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A662ED35231567DC00F8DDDE /* Build configuration list for PBXNativeTarget "70_DepthBlit" */;
+			buildPhases = (
+				A662ED1D231567D900F8DDDE /* Sources */,
+				A662ED1E231567D900F8DDDE /* Frameworks */,
+				A662ED1F231567D900F8DDDE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = 70_DepthBlit;
+			productName = 70_DepthBlit;
+			productReference = A662ED21231567D900F8DDDE /* 70_DepthBlit.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A662ED19231567D900F8DDDE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1020;
+				ORGANIZATIONNAME = Asylum;
+				TargetAttributes = {
+					A662ED20231567D900F8DDDE = {
+						CreatedOnToolsVersion = 10.2;
+					};
+				};
+			};
+			buildConfigurationList = A662ED1C231567D900F8DDDE /* Build configuration list for PBXProject "70_DepthBlit" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A662ED18231567D900F8DDDE;
+			productRefGroup = A662ED22231567D900F8DDDE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A662ED20231567D900F8DDDE /* 70_DepthBlit */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A662ED1F231567D900F8DDDE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A662ED4E231568B900F8DDDE /* Debug.xcconfig in Resources */,
+				A662ED442315687C00F8DDDE /* Main.storyboard in Resources */,
+				A662ED402315687200F8DDDE /* Assets.xcassets in Resources */,
+				A662ED542315690000F8DDDE /* teapot.qm in Resources */,
+				A662ED4D231568B900F8DDDE /* Release.xcconfig in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A662ED1D231567D900F8DDDE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A662ED72231569F000F8DDDE /* main.mm in Sources */,
+				A662ED642315694400F8DDDE /* application.cpp in Sources */,
+				A662ED672315694400F8DDDE /* macOSapplication.mm in Sources */,
+				A662ED652315694400F8DDDE /* 3Dmath.cpp in Sources */,
+				A662ED52231568F300F8DDDE /* coloredgrid.metal in Sources */,
+				A662ED662315694400F8DDDE /* dds.cpp in Sources */,
+				A662ED51231568F300F8DDDE /* blinnphong.metal in Sources */,
+				A662ED6F2315697E00F8DDDE /* MetalViewController.mm in Sources */,
+				A662ED702315697E00F8DDDE /* AppDelegate.mm in Sources */,
+				A662ED7723156EBA00F8DDDE /* screenquad.metal in Sources */,
+				A662ED632315694400F8DDDE /* basiccamera.cpp in Sources */,
+				A662ED682315694400F8DDDE /* mtlext.mm in Sources */,
+				A662ED692315694400F8DDDE /* geometryutils.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		A662ED422315687C00F8DDDE /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A662ED432315687C00F8DDDE /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		A662ED33231567DC00F8DDDE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				MTL_LANGUAGE_REVISION = Metal12;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		A662ED34231567DC00F8DDDE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				MTL_LANGUAGE_REVISION = Metal12;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		A662ED36231567DC00F8DDDE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A662ED4C231568B900F8DDDE /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = 70_DepthBlit/_0_DepthBlit.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 33TJGE8Y99;
+				INFOPLIST_FILE = 70_DepthBlit/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "Asylum.-0-DepthBlit";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A662ED37231567DC00F8DDDE /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A662ED4B231568B900F8DDDE /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = 70_DepthBlit/_0_DepthBlit.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 33TJGE8Y99;
+				INFOPLIST_FILE = 70_DepthBlit/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "Asylum.-0-DepthBlit";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A662ED1C231567D900F8DDDE /* Build configuration list for PBXProject "70_DepthBlit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A662ED33231567DC00F8DDDE /* Debug */,
+				A662ED34231567DC00F8DDDE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A662ED35231567DC00F8DDDE /* Build configuration list for PBXNativeTarget "70_DepthBlit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A662ED36231567DC00F8DDDE /* Debug */,
+				A662ED37231567DC00F8DDDE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A662ED19231567D900F8DDDE /* Project object */;
+}

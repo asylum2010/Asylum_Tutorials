@@ -188,7 +188,9 @@ MetalMesh::MetalMesh(id<MTLDevice> device, uint32_t numvertices, uint32_t numind
 	vertexlayout.attributes[2].format = MTLVertexFormatFloat2;
 	vertexlayout.attributes[2].offset = 24;
 	
-	vertexlayout.layouts[0].stride = 32;
+	static_assert(sizeof(GeometryUtils::CommonVertex) == 32, "sizeof(CommonVertex) should be 32 bytes");
+	
+	vertexlayout.layouts[0].stride = sizeof(GeometryUtils::CommonVertex);
 	vertexlayout.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
 }
 
@@ -364,6 +366,7 @@ MTLVertexDescriptor* MetalMesh::GetVertexLayout(NSArray* signature)
 		MTL_ASSERT([attrib attributeIndex] == i);
 	}
 	
+	// NOTE: stride must be preserved!
 	newdescriptor.layouts[0].stride = vertexlayout.layouts[0].stride;
 	newdescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
 	
@@ -511,7 +514,7 @@ MetalMesh* MetalMesh::LoadFromQM(id<MTLDevice> device, id<MTLCommandQueue> queue
 			
 			fread(&material.power, sizeof(float), 1, infile);
 			fread(&material.diffuse.a, sizeof(float), 1, infile);
-			fread(&unused, 4, 1, infile);		// blendmode
+			fread(&unused, 4, 1, infile);		// blend mode
 			
 			ReadString(infile, buff);
 			
@@ -692,17 +695,6 @@ void MetalRenderTextEx(const std::string& str, id<MTLTexture> texture, const cha
 void MetalTemporaryCommandBuffer(id<MTLCommandQueue> queue, bool wait, std::function<bool (id<MTLCommandBuffer>)> callback)
 {
 	id<MTLCommandBuffer> cmdbuff = [queue commandBuffer];
-	dispatch_semaphore_t waitsema = 0;
-	
-	if (wait) {
-		waitsema = dispatch_semaphore_create(1);
-		
-		__block dispatch_semaphore_t blocksema = waitsema;
-		
-		[cmdbuff addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-			dispatch_semaphore_signal(blocksema);
-		}];
-	}
 	
 	if (callback != nullptr)
 		callback(cmdbuff);
@@ -710,7 +702,7 @@ void MetalTemporaryCommandBuffer(id<MTLCommandQueue> queue, bool wait, std::func
 	[cmdbuff commit];
 	
 	if (wait) {
-		dispatch_semaphore_wait(waitsema, DISPATCH_TIME_FOREVER);
+		[cmdbuff waitUntilCompleted];
 	}
 }
 

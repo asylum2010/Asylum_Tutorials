@@ -52,6 +52,7 @@ struct VulkanDriverInfo
 	VkPhysicalDevice					selectedDevice;
 	VkPhysicalDeviceProperties			deviceProps;
 	VkPhysicalDeviceFeatures			deviceFeatures;
+	VkPhysicalDeviceFeatures2			deviceFeatures2;	// additional features
 	VkPhysicalDeviceMemoryProperties	memoryProps;
 	VkPhysicalDeviceSubgroupProperties	subgroupProps;
 	VkQueueFamilyProperties*			queueProps;			// for primary adapter

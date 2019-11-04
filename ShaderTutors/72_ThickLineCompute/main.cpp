@@ -143,7 +143,7 @@ bool InitScene()
 	GLCreateTexture(512, 512, 1, GLFMT_A8B8G8R8, &helptext);
 
 	GLRenderText(
-		"Use the mouse to for camera control",
+		"Use the mouse for camera control",
 		helptext, 512, 512);
 
 	return true;

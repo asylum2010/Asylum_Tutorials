@@ -60,8 +60,7 @@ _metalist<type_list, 0>::~_metalist()
 	metalink_base* p = head->next;
 	metalink_base* q;
 
-	while( p != head )
-	{
+	while (p != head) {
 		q = p->next;
 		delete p;
 

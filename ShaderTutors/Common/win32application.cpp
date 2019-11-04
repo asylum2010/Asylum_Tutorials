@@ -148,6 +148,10 @@ static void APIENTRY ReportGLError(GLenum source, GLenum type, GLuint id, GLenum
 		std::cout << id << ": " << message << "\n";
 	}
 
+	// bug in SwapBuffers() when Fraps is running
+	if (id == 3200)
+		return;
+
 	if (type == GL_DEBUG_TYPE_ERROR)
 		__debugbreak();
 }
@@ -743,10 +747,18 @@ bool Win32Application::InitializeVulkan()
 	driverInfo.queueProps = new VkQueueFamilyProperties[driverInfo.numQueues];
 	vkGetPhysicalDeviceQueueFamilyProperties(driverInfo.selectedDevice, &driverInfo.numQueues, driverInfo.queueProps);
 
+	// query standard features
 	vkGetPhysicalDeviceProperties(driverInfo.selectedDevice, &driverInfo.deviceProps);
 	vkGetPhysicalDeviceFeatures(driverInfo.selectedDevice, &driverInfo.deviceFeatures);
 	vkGetPhysicalDeviceMemoryProperties(driverInfo.selectedDevice, &driverInfo.memoryProps);
 
+	// query additional features
+	driverInfo.deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	driverInfo.deviceFeatures2.pNext = NULL;
+
+	vkGetPhysicalDeviceFeatures2(driverInfo.selectedDevice, &driverInfo.deviceFeatures2);
+
+	// check version
 	apiversion = driverInfo.deviceProps.apiVersion;
 
 	if (VK_VERSION_MAJOR(apiversion) == 1 && VK_VERSION_MINOR(apiversion) < 1) {
@@ -847,13 +859,13 @@ bool Win32Application::InitializeVulkan()
 	queueinfo.queueFamilyIndex			= driverInfo.graphicsQueueID;
 
 	deviceinfo.sType					= VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceinfo.pNext					= NULL;
+	deviceinfo.pNext					= &driverInfo.deviceFeatures2;
 	deviceinfo.queueCreateInfoCount		= 1;
 	deviceinfo.pQueueCreateInfos		= &queueinfo;
 	deviceinfo.enabledExtensionCount	= ARRAY_SIZE(deviceextensions);
 	deviceinfo.ppEnabledLayerNames		= instancelayers;
 	deviceinfo.ppEnabledExtensionNames	= deviceextensions;
-	deviceinfo.pEnabledFeatures			= &driverInfo.deviceFeatures;
+	deviceinfo.pEnabledFeatures			= NULL; //&driverInfo.deviceFeatures;
 
 #ifdef ENABLE_VALIDATION
 	deviceinfo.enabledLayerCount		= numsupportedlayers;

@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <algorithm>
+#include <ostream>
 #include <cstdint>
 
 template <typename value_type, typename compare = std::less<value_type> >

@@ -477,8 +477,12 @@ bool InitScene()
 	device->CreateBlendState(&blenddesc, &nocolorwrite);
 
 	// render text
-	if (FAILED(DXRenderTextEx(device, "Mouse left - Orbit camera\nMouse middle - Pan/zoom camera\nMouse right - Rotate light\n\n1 - Toggle silhouette\n2 - Toggle shadow volume", 512, 512, L"Arial", 1, Gdiplus::FontStyleBold, 25, &helptext)))
+	if (FAILED(DXRenderTextEx(device,
+		"Mouse left - Orbit camera\nMouse middle - Pan/zoom camera\nMouse right - Rotate light\n\n1 - Toggle silhouette\n2 - Toggle shadow volume",
+		512, 512, L"Arial", 1, Gdiplus::FontStyleBold, 25, &helptext)))
+	{
 		return false;
+	}
 
 	// setup camera
 	camera.SetAspect((float)screenwidth / (float)screenheight);
