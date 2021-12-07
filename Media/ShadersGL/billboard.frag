@@ -1,8 +1,8 @@
 
 #version 440
 
-layout(location = 4, binding = 0) uniform sampler3D sampler0;
-layout(location = 5, binding = 1) uniform sampler2D sampler1;
+layout(binding = 0) uniform sampler3D sampler0;
+layout(binding = 1) uniform sampler2D sampler1;
 
 in vec3 tex;
 

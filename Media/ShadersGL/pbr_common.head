@@ -1,55 +1,69 @@
 
 #define PI				3.1415926535897932
+#define QUAD_PI			12.566370614359172
 #define TWO_PI			6.2831853071795864
 #define HALF_PI			1.5707963267948966
 #define ONE_OVER_PI		0.3183098861837906
-#define EPSILON			1e-5				// to avoid division with zero
+#define EPSILON			1e-9				// to avoid division with zero
+#define SAMPLE_VISIBLE	1					// sample visible normals in microfacet BSDFs
 
-uniform sampler2D baseColorSamp;
+#ifndef FLT_MAX
+#define FLT_MAX			3.402823466e+38
+#endif
 
+// CONSOLIDATE: ez meg a raszteres peldakod oroksege
 uniform vec4 baseColor;
-uniform vec4 matParams;			// roughness, metalness, hastexture, hasnormalmap
+uniform vec4 matParams; // roughness, metalness, hastexture, hasnormalmap
 
-float Random(vec3 pixel, vec3 scale, float seed)
+float randomSeed = 0.0;
+
+bool IsBlack(vec3 value)
 {
-	return fract(sin(dot(pixel + seed, scale)) * 43758.5453 + seed);
+	return all(lessThan(value, vec3(EPSILON)));
 }
 
-vec3 F_Schlick(vec3 f0, float u)
+float Random1()
 {
-	return f0 + (vec3(1.0) - f0) * pow(1.0 - u + EPSILON, 5.0);
+	return fract(sin(randomSeed++) * 43758.5453123);
 }
 
-float D_GGX(float ndoth, float roughness)
+vec2 Random2()
 {
-	// Disney's suggestion
-	float a = roughness * roughness;
-	float a2 = a * a;
+	vec2 ret;
 
-	// optimized formula for the GPU
-	float d = (ndoth * a2 - ndoth) * ndoth + 1.0;
+	ret.x = Random1();
+	ret.y = Random1();
 
-	return a2 / (PI * d * d + EPSILON);
+	return ret;
 }
 
-float Vis_Schlick(float ndotl, float ndotv, float roughness)
+float F0FromEta(float eta)
 {
-	// Disney's suggestion
-	float a = roughness + 1.0;
-	float k = a * a * 0.125;
+	float etam1 = eta - 1.0;
+	float etap1 = eta + 1.0;
 
-	// shadowing/masking functions
-	float G1_l = ndotl * (1 - k) + k;
-	float G1_v = ndotv * (1 - k) + k;
+	return (etam1 * etam1) / (etap1 * etap1);
+}
 
-	// = G_Schlick / (4 * ndotv * ndotl)
-	return 0.25 / (G1_l * G1_v + EPSILON);
+vec3 TransformToCanonical(vec3 n, vec3 v)
+{
+	vec3 up = ((abs(n.z) < 0.999) ? vec3(0, 0, 1) : vec3(1, 0, 0));
+	vec3 tangent = normalize(cross(up, n));
+	vec3 bitangent = cross(n, tangent);
+
+	vec3 ret;
+
+	ret.x = dot(v, tangent);
+	ret.y = dot(v, bitangent);
+	ret.z = dot(v, n);
+
+	return ret;
 }
 
 vec3 TransformToHemisphere(vec3 n, float phi, float costheta)
 {
 	vec3 h;
-	float sintheta = sqrt(1 - costheta * costheta);
+	float sintheta = sqrt(max(0.0, 1.0 - costheta * costheta));
 
 	h.x = sintheta * cos(phi);
 	h.y = sintheta * sin(phi);
@@ -62,21 +76,89 @@ vec3 TransformToHemisphere(vec3 n, float phi, float costheta)
 	return tangent * h.x + bitangent * h.y + n * h.z;
 }
 
-vec3 CosineSample(vec3 n, vec3 pixel, float seed)
+vec3 TransformToHemisphere(vec3 n, vec3 v)
 {
-	float u = Random(pixel, vec3(12.9898, 78.233, 151.7182), seed);
-	float v = Random(pixel, vec3(63.7264, 10.873, 623.6736), seed);
+	vec3 up = ((abs(n.z) < 0.999) ? vec3(0, 0, 1) : vec3(1, 0, 0));
+	vec3 tangent = normalize(cross(up, n));
+	vec3 bitangent = cross(n, tangent);
 
-	float phi = TWO_PI * u;
-	float costheta = sqrt(v);
-
-	// PDF = cos(theta) / PI
-	return TransformToHemisphere(n, phi, costheta);
+	return tangent * v.x + bitangent * v.y + n * v.z;
 }
 
-vec4 BRDF_Lambertian(vec2 tex)
+// --- Torrance-Sparrow model functions ---------------------------------------
+
+float Pow5(float x)
 {
-	vec4 albedo = texture(baseColorSamp, tex);
+	return (x * x) * (x * x) * x;
+}
+
+float F_Schlick(float F0, float u)
+{
+	float invu = (1.0 - u);
+	return F0 + (1.0 - F0) * Pow5(invu);
+}
+
+vec3 F_Schlick(vec3 F0, float u)
+{
+	float invu = (1.0 - u);
+	return F0 + (vec3(1.0) - F0) * Pow5(invu);
+}
+
+float D_GGX(float ndoth, float roughness)
+{
+	float a = roughness;
+	float a2 = a * a;
+
+	// optimized formula for the GPU
+	float d = (ndoth * a2 - ndoth) * ndoth + 1.0;
+
+	return a2 / (PI * d * d + EPSILON);
+}
+
+float G_Smith_GGX_1(float ndotv, float roughness)
+{
+	// Smith-GGX masking
+	// https://twvideo01.ubm-us.net/o1/vault/gdc2017/Presentations/Hammon_Earl_PBR_Diffuse_Lighting.pdf
+
+	float a = roughness;
+	float a2 = a * a;
+
+	float lambda = sqrt(a2 + (1.0 - a2) * ndotv * ndotv);
+
+	return (2.0 * ndotv) / max(EPSILON, ndotv + lambda);
+}
+
+float G_Smith_GGX_2(float ndotl, float ndotv, float roughness)
+{
+	// height-correlated Smith-GGX shadowing-masking
+	// https://twvideo01.ubm-us.net/o1/vault/gdc2017/Presentations/Hammon_Earl_PBR_Diffuse_Lighting.pdf
+
+	float a = roughness;
+	float a2 = a * a;
+
+	float lambda_l = sqrt(a2 + (1.0 - a2) * ndotl * ndotl);
+	float lambda_v = sqrt(a2 + (1.0 - a2) * ndotv * ndotv);
+
+	return (2.0 * ndotl * ndotv) / max(EPSILON, (ndotv * lambda_l + ndotl * lambda_v));
+}
+
+float Vis_Smith_GGX_2(float ndotl, float ndotv, float roughness)
+{
+	float a = roughness;
+	float a2 = a * a;
+
+	float lambda_l = sqrt(a2 + (1.0 - a2) * ndotl * ndotl);
+	float lambda_v = sqrt(a2 + (1.0 - a2) * ndotv * ndotv);
+
+	// = G_Smith_GGX_2 / (4 * ndotv * ndotl)
+	return 0.5 / (ndotv * lambda_l + ndotl * lambda_v + EPSILON);
+}
+
+// --- BRDFS for realtime rendering -------------------------------------------
+
+vec4 BRDF_Lambertian(sampler2D samp, vec2 tex)
+{
+	vec4 albedo = texture(samp, tex);
 	vec4 color = mix(baseColor, albedo, matParams.z);
 
 	color.rgb = mix(color.rgb, vec3(0.0), matParams.y);
@@ -85,13 +167,322 @@ vec4 BRDF_Lambertian(vec2 tex)
 	return color;
 }
 
-vec3 BRDF_CookTorrance(float ldoth, float ndoth, float ndotv, float ndotl, float roughness)
+vec3 BRDF_CookTorrance(vec3 l, vec3 v, vec3 n, vec3 F0, float roughness)
 {
-	vec3 F0 = mix(vec3(0.04), baseColor.rgb, matParams.y);
+	vec3 h = normalize(v + l);
+
+	float ndotv = max(dot(n, v), 0.0);
+	float ndotl = max(dot(n, l), 0.0);
+	float ndoth = max(dot(n, h), 0.0);
+	float ldoth = max(dot(l, h), 0.0);
+
+	vec3 F = F_Schlick(F0, ldoth);
+	float D = D_GGX(ndoth, roughness);
+	float Vis = Vis_Smith_GGX_2(ndotl, ndotv, roughness);
+
+	return (D * F * Vis);
+}
+
+// --- Importance sampled BSDFs for path tracing ------------------------------
+
+vec3 AshikhminShirley_Cosine()
+{
+	return vec3(0.0);
+}
+
+vec3 AshikhminShirley_GGX(vec3 l, vec3 v, vec3 h, vec3 n, vec3 F0, float roughness)
+{
+	return vec3(0.0);
+}
+
+vec3 AshikhminShirley_General(vec3 l, vec3 v, vec3 h, vec3 n, vec3 albedo, float roughness)
+{
+	const float F0 = 0.04;
+	const float ASmagic = 0.3875076875280929;	// 28.0 / (23.0 * PI)
+
+	float ndotl = max(dot(n, l), 0.0);
+	float ndotv = max(dot(n, n), 0.0);
+	float ndoth = max(dot(n, h), 0.0);
+	float ldoth = max(dot(l, h), 0.0);
+
+	vec3 diffuse = ASmagic * albedo *
+		(1.0 - F0) *
+		(1.0 - Pow5(1.0 - 0.5 * ndotl)) *
+		(1.0 - Pow5(1.0 - 0.5 * ndotv));
+
+	float D = D_GGX(ndoth, roughness);
+	float F = F_Schlick(F0, ldoth);
+
+	float specular = D / (4.0 * ldoth * max(ndotl, ndotv)) * F;
+
+	return diffuse + vec3(specular);
+}
+
+vec3 CookTorrance_GGX(vec3 l, vec3 v, vec3 h, vec3 n, vec3 F0, float roughness)
+{
+	// refraction through rough surfaces
+	// https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf
+
+	float ndotv = max(dot(n, v), 0.0);
+	float ndotl = max(dot(n, l), 0.0);
+	float ndoth = max(dot(n, h), 0.0);
+	float ldoth = max(dot(l, h), 0.0);
+	float vdoth = max(dot(v, h), 0.0);
+
 	vec3 F = F_Schlick(F0, ldoth);
 
-	float Vis = Vis_Schlick(ndotl, ndotv, roughness);
+#if SAMPLE_VISIBLE
+	float G1 = G_Smith_GGX_1(ndotv, roughness);
+	float G2 = G_Smith_GGX_2(ndotl, ndotv, roughness);
+
+	// PDF = (G_1(v) * dot(v, h) * D(h)) / dot(v, n)
+	return F * (G2 / max(G1, EPSILON));
+#else
+	float G = G_Smith_GGX_2(ndotl, ndotv, roughness);
+
+	// NOTE: vdoth comes from the Jacobian, ndotl cancels out b/c of the cosine term
+
+	// PDF = D(h) * dot(n, h)
+	return (F * G * vdoth) / (ndotv * ndoth + EPSILON);
+#endif
+}
+
+vec3 CookTorrance_FresnelGGX(vec3 l, vec3 v, vec3 n, float roughness, float eta, bvec2 ent_ref)
+{
+	// sampling visible normals of microfacet BSDFs
+	// http://www.eugenedeon.com/project/importance-sampling-microfacet-based-bsdfs-using-the-distribution-of-visible-normals/
+
+	vec3 h = normalize(l + v);
+
+	if (ent_ref.y) {
+		// ray refracted
+		h = (ent_ref.x ? (v + eta * l) : (l + eta * v));
+	}
+
+	float ndotv = abs(dot(n, v));
+	float ndotl = abs(dot(n, l));
+	float ndoth = abs(dot(n, h));
+	float vdoth = abs(dot(v, h));
+
+#if SAMPLE_VISIBLE
+	float G1 = G_Smith_GGX_1(ndotv, roughness);
+	float G2 = G_Smith_GGX_2(ndotl, ndotv, roughness);
+
+	// PDF = (G_1(v) * dot(v, h) * D(h) * (1 - F(l, h))) / dot(v, n)
+	return vec3(G2 / max(G1, EPSILON));
+#else
+	float G = G_Smith_GGX_2(ndotl, ndotv, roughness);
+
+	// CONSOLIDATE: PDF = ?
+	return vec3((G * vdoth) / (ndotv * ndoth + EPSILON));
+#endif
+}
+
+vec3 CookTorrance_General(vec3 l, vec3 v, vec3 n, vec3 F0, float roughness)
+{
+	vec3 h = normalize(l + v);
+
+	float ndotv = abs(dot(n, v));
+	float ndotl = abs(dot(n, l));
+	float ndoth = max(dot(n, h), 0.0);
+	float ldoth = max(dot(l, h), 0.0);
+
+	vec3 F = F_Schlick(F0, ldoth);
+	float G = G_Smith_GGX_2(ndotl, ndotv, roughness);
 	float D = D_GGX(ndoth, roughness);
 
-	return F * Vis * D;
+	return (F * G * D) / max(4.0 * ndotv * ndotl, EPSILON);
+}
+
+// --- Probability density functions ------------------------------------------
+
+float PDF_Cosine(vec3 n, vec3 l)
+{
+	return max(0.0, dot(n, l)) * ONE_OVER_PI;
+}
+
+float PDF_GGX(vec3 n, vec3 h, float roughness)
+{
+	float ndoth = max(0.0, dot(n, h));
+	return D_GGX(ndoth, roughness) * ndoth;
+}
+
+float PDF_GGXVisible(vec3 n, vec3 v, vec3 h, float roughness)
+{
+	float ndotv = abs(dot(v, n));
+	float ndoth = max(0.0, dot(n, h));
+	float vdoth = abs(dot(v, h));
+
+	return (G_Smith_GGX_1(ndotv, roughness) * vdoth * D_GGX(ndoth, roughness)) / max(EPSILON, ndotv);
+}
+
+float PDF_ConeSampledSphere(vec3 p, vec3 center, float radius)
+{
+	vec3 d = p - center;
+
+	float sinthetamax2 = (radius * radius) / dot(d, d);
+	float costhetamax = sqrt(1.0 - sinthetamax2);
+
+	return 1.0 / (TWO_PI * (1.0 - costhetamax));
+}
+
+float PDF_UniformSampledRect(vec3 wo, vec3 t, vec3 b)
+{
+	vec3 n = cross(b, t);
+
+	// convert from area density to solid angle density
+	float dist2 = dot(wo, wo);
+	float costheta_area = dot(wo, n);
+
+	return ((costheta_area < EPSILON) ? 0.0 : (dist2 / costheta_area));
+}
+
+float PDF_ImportanceCamera(vec3 start, vec3 dir, vec3 forward, float area)
+{
+	// http://www.pbr-book.org/3ed-2018/Light_Transport_III_Bidirectional_Methods/The_Path-Space_Measurement_Equation.html#eq:importance-sa
+
+	float costheta = dot(dir, forward);
+	float pdfdir = 1.0 / (area * costheta * costheta * costheta);
+
+	// CONSOLIDATE: handle out of bounds case
+
+	return ((costheta > 0.0) ? pdfdir : 0.0);
+}
+
+// --- Sampling functions -----------------------------------------------------
+
+vec3 UniformSampleSphere(vec2 xi)
+{
+	float phi = TWO_PI * xi.x;
+	float costheta = 2.0 * xi.y - 1.0;
+	float sintheta = sqrt(max(0.0, 1.0 - costheta * costheta));
+
+	vec3 h;
+
+	h.x = sintheta * cos(phi);
+	h.y = sintheta * sin(phi);
+	h.z = costheta;
+
+	// PDF = 1 / QUAD_PI
+	return h;
+}
+
+vec4 ConeSampleSphere(vec3 p, vec3 center, float radius, vec2 xi)
+{
+	// http://www.pbr-book.org/3ed-2018/Light_Transport_I_Surface_Reflection/Sampling_Light_Sources.html
+	
+	vec3 d = p - center;
+	vec3 nd = normalize(d);
+
+	float sinthetamax2 = (radius * radius) / dot(d, d);
+	float costhetamax = sqrt(1.0 - sinthetamax2);
+	float costheta = (costhetamax - 1.0) * xi.y + 1.0;
+	float sintheta2 = (1.0 - costheta * costheta);
+	float phi = TWO_PI * xi.x;
+
+	float dc = length(d);
+	float ds = dc * costheta - sqrt(max(0.0, radius * radius - dc * dc * sintheta2));
+	float cosalpha = (dc * dc + radius * radius - ds * ds) / (2.0 * dc * radius);
+
+	vec4 ret;
+
+	// calculate direction from p to point on sphere
+	ret.xyz = center + radius * TransformToHemisphere(nd, phi, cosalpha);
+	ret.xyz = normalize(ret.xyz - p);
+
+	// calculate PDF
+	ret.w = 1.0 / (TWO_PI * (1.0 - costhetamax));
+
+	return ret;
+}
+
+vec4 UniformSampleRect(vec3 p, vec3 o, vec3 t, vec3 b, vec2 xi)
+{
+	vec4 ret;
+	vec3 n = cross(b, t);
+	vec3 s = o + xi.x * t + xi.y * b;
+
+	ret.xyz = s - p;
+
+	// convert from area density to solid angle density
+	float dist2 = dot(ret.xyz, ret.xyz);
+
+	ret.xyz = normalize(ret.xyz);
+	float costheta_area = -dot(ret.xyz, n);
+
+	ret.w = dist2 / costheta_area;
+	return ret;
+}
+
+vec3 UniformSampleHemisphere(vec3 n, vec2 xi)
+{
+	float phi = TWO_PI * xi.x;
+	float costheta = xi.y;
+
+	// PDF = 1 / TWO_PI
+	return TransformToHemisphere(n, phi, costheta);
+}
+
+vec3 CosineSampleHemisphere(vec3 n, vec2 xi)
+{
+	float phi = TWO_PI * xi.x;
+	float costheta = sqrt(xi.y);
+
+	// PDF = cos(theta) / PI
+	return TransformToHemisphere(n, phi, costheta);
+}
+
+vec3 GGXSampleHemisphere(vec3 n, float roughness, vec2 xi)
+{
+	float a = roughness;
+	float a2 = a * a;
+
+	float phi = TWO_PI * xi.x;
+	float costheta = sqrt((1.0 - xi.y) / (1.0 + (a2 - 1.0) * xi.y));
+
+	// PDF = D(h) * dot(n, h)
+	return TransformToHemisphere(n, phi, costheta);
+}
+
+vec3 GGXSampleHemisphereVisible(vec3 n, vec3 wo, float roughness, vec2 xi)
+{
+	// sampling visible normals of microfacet BSDFs
+	// http://www.jcgt.org/published/0007/04/01/paper.pdf
+
+	vec3 wo_c = TransformToCanonical(n, wo);
+	vec3 wo_s = normalize(vec3(wo_c.x * roughness, wo_c.y * roughness, wo_c.z));
+	
+	float lensq = wo_s.x * wo_s.x + wo_s.y * wo_s.y;
+	vec3 tangent = ((lensq > 0.0) ? (vec3(-wo_s.y, wo_s.x, 0.0) * inversesqrt(lensq)) : vec3(1.0, 0.0, 0.0));
+	vec3 bitangent = cross(wo_s, tangent);
+
+	float r = sqrt(xi.x);
+	float phi = TWO_PI * xi.y;
+
+	float t1 = r * cos(phi);
+	float t2 = r * sin(phi);
+	float s = 0.5 * (1.0 + wo_s.z);
+
+	t2 = (1.0 - s) * sqrt(1.0 - t1 * t1) + s * t2;
+
+	float vh = sqrt(max(0.0, 1.0 - t1 * t1 - t2 * t2));
+	vec3 h = t1 * tangent + t2 * bitangent + vh * wo_s;
+
+	h = normalize(vec3(h.x * roughness, h.y * roughness, max(0.0, h.z)));
+
+	return TransformToHemisphere(n, h);
+}
+
+// --- Multiple importance sampling -------------------------------------------
+
+float PowerHeuristic(uint nf, float pf, uint ng, float pg)
+{
+	//float frac_f = float(nf) / float(nf + ng);
+	//float frac_g = float(ng) / float(nf + ng);
+
+	// nX is the number of samples from pdf pX
+	float f = float(nf) * pf;
+	float g = float(ng) * pg;
+
+	return (f * f) / ((f * f) + (g * g));
 }

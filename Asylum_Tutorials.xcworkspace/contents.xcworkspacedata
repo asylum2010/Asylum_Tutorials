@@ -5,6 +5,9 @@
       location = "container:"
       name = "macOS">
       <FileRef
+         location = "group:Build/XCode/51_GeometryShader.xcodeproj">
+      </FileRef>
+      <FileRef
          location = "group:Build/XCode/70_UniformStreaming.xcodeproj">
       </FileRef>
       <FileRef

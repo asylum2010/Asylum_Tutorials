@@ -7,8 +7,8 @@
 
 in vec3 my_Position;
 
-layout(rgba32f, binding = 0) uniform sampler2D displacement;
-layout(rgba16f, binding = 1) uniform sampler2D perlin;
+layout (binding = 0) uniform sampler2D displacement;
+layout (binding = 1) uniform sampler2D perlin;
 
 uniform mat4 matLocal;
 uniform mat4 matWorld;

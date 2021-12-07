@@ -1,0 +1,120 @@
+
+#version 440
+
+layout (std430, binding = 0) buffer Values {
+	int data[];
+} values;
+
+subroutine void BitonicSortFunc(uint, uint);
+
+uniform int numValues;
+uniform int outerIndex;
+uniform int innerIndex;
+uniform int ascending;
+
+subroutine uniform BitonicSortFunc sortFunc;
+
+shared int shared_values[THREADGROUP_SIZE];
+
+// NOTE: sorts at most THREADGROUP_SIZE elements (or THREADGROUP_SIZE steps of the sort)
+layout (index = 0) subroutine(BitonicSortFunc) void BitonicSortFull(uint localID, uint globalID)
+{
+	// read to threadgroup memory (and pad with invalid value)
+	shared_values[localID] = values.data[globalID];
+
+	if (globalID >= numValues)
+		shared_values[localID] = (ascending ? 2147483647 : -2147483647);
+		
+	barrier();
+
+	// parallel compare/exchange
+	int l = int(localID);
+	int g = int(globalID);
+	int v1, v2;
+
+	for (int s = 1; s <= LOG2_THREADGROUP_SIZE; ++s) {
+		for (int t = s - 1; t >= 0; --t) {
+			int lxt = l ^ (1 << t);
+			bool dir = (int((g & (1 << s)) == 0) != ascending);
+
+			// enforce comparison width
+			if (lxt > l) {
+				v1 = shared_values[l];
+				v2 = shared_values[lxt];
+
+				if ((v1 < v2) == dir) {
+					shared_values[l] = v2;
+					shared_values[lxt] = v1;
+				}
+			}
+
+			memoryBarrierShared();
+			barrier();
+		}
+	}
+
+	// write back
+	values.data[globalID] = shared_values[localID];
+}
+
+// NOTE: does compare/exchange operations when k > THREADGROUP_SIZE
+layout (index = 1) subroutine(BitonicSortFunc) void BitonicSortInnerLoop(uint localID, uint globalID)
+{
+	int v1, v2;
+	int l = int(globalID);
+	int lxt = l ^ (1 << innerIndex);
+	bool dir = (int((l & (1 << outerIndex)) == 0) != ascending);
+
+	// enforce comparison width
+	if (lxt > l) {
+		v1 = values.data[l];
+		v2 = values.data[lxt];
+
+		if ((v1 < v2) == dir) {
+			values.data[l] = v2;
+			values.data[lxt] = v1;
+		}
+	}
+}
+
+// NOTE: does all compare/exchange operations when k == THREADGROUP_SIZE
+layout (index = 2) subroutine(BitonicSortFunc) void BitonicSortOuterLoop(uint localID, uint globalID)
+{
+	// read to threadgroup memory
+	shared_values[localID] = values.data[globalID];
+	
+	barrier();
+
+	// parallel compare/exchange
+	int l = int(localID);
+	int g = int(globalID);
+	int v1, v2;
+
+	for (int t = LOG2_THREADGROUP_SIZE - 1; t >= 0; --t) {
+		int lxt = l ^ (1 << t);
+		bool dir = (int((g & (1 << outerIndex)) == 0) != ascending);
+
+		// enforce comparison width
+		if (lxt > l) {
+			v1 = shared_values[l];
+			v2 = shared_values[lxt];
+
+			if ((v1 < v2) == dir) {
+				shared_values[l] = v2;
+				shared_values[lxt] = v1;
+			}
+		}
+
+		memoryBarrierShared();
+		barrier();
+	}
+
+	// write back
+	values.data[globalID] = shared_values[localID];
+}
+
+layout (local_size_x = THREADGROUP_SIZE) in;
+void main()
+{
+	sortFunc(gl_LocalInvocationID.x, gl_GlobalInvocationID.x);
+}

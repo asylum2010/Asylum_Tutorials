@@ -9,9 +9,11 @@
 #include "..\Common\application.h"
 #include "..\Common\gl4ext.h"
 #include "..\Common\basiccamera.h"
+#include "..\Common\bitonicsorter.h"
 
 #define NUM_EMITTERS		2
 #define MAX_PARTICLES		8192
+#define THREADGROUP_SIZE	256
 
 #define EMIT_RATE			0.2f
 #define LIFE_SPAN			7.0f
@@ -69,7 +71,10 @@ GLuint					countquery				= 0;
 
 BasicCamera				camera;
 Particle*				emitters				= nullptr;
+BitonicSorter*			sorter					= nullptr;
 int						currentbuffer			= 0;
+
+// --- Sample impl ------------------------------------------------------------
 
 bool InitScene()
 {
@@ -129,10 +134,10 @@ bool InitScene()
 	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, particlebuffers[0]);
-	glBufferStorage(GL_ARRAY_BUFFER, MAX_PARTICLES * sizeof(Particle), NULL, GL_DYNAMIC_STORAGE_BIT|GL_MAP_READ_BIT|GL_MAP_WRITE_BIT);
+	glBufferStorage(GL_ARRAY_BUFFER, MAX_PARTICLES * sizeof(Particle), NULL, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, particlebuffers[1]);
-	glBufferStorage(GL_ARRAY_BUFFER, MAX_PARTICLES * sizeof(Particle), NULL, GL_DYNAMIC_STORAGE_BIT|GL_MAP_READ_BIT|GL_MAP_WRITE_BIT);
+	glBufferStorage(GL_ARRAY_BUFFER, MAX_PARTICLES * sizeof(Particle), NULL, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, particlebuffers[2]);
 	glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * sizeof(Particle), NULL, GL_STATIC_DRAW);
@@ -155,6 +160,9 @@ bool InitScene()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 2048, 1, 0, GL_RGBA, GL_FLOAT, data);
 
 	delete[] data;
+
+	// load compute shader
+	sorter = new BitonicSorter("../../Media/ShadersGL/sortparticles.comp", THREADGROUP_SIZE);
 
 	// create pipelines
 	smokeemitpipeline = new OpenGLProgramPipeline();
@@ -217,7 +225,7 @@ bool InitScene()
 	// setup camera
 	camera.SetAspect((float)screenwidth / screenheight);
 	camera.SetFov(Math::DegreesToRadians(80));
-	camera.SetClipPlanes(0.1f, 30.0f);
+	camera.SetClipPlanes(0.1f, 50.0f);
 	camera.SetDistance(4);
 	camera.SetOrientation(Math::DegreesToRadians(-175), Math::DegreesToRadians(15), 0);
 
@@ -236,6 +244,7 @@ bool InitScene()
 void UninitScene()
 {
 	delete[] emitters;
+	delete sorter;
 
 	delete ground;
 	delete buddha;
@@ -409,7 +418,7 @@ void Render(float alpha, float elapsedtime)
 	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
 	glDisable(GL_RASTERIZER_DISCARD);
 
-	// sort particles (TODO: bitonic sort on GPU)
+	// sort particles
 	GLuint count = 0;
 	glGetQueryObjectuiv(countquery, GL_QUERY_RESULT, &count);
 
@@ -419,32 +428,16 @@ void Render(float alpha, float elapsedtime)
 	Math::Vec3Normalize(vdir, vdir);
 
 	if (count > 0) {
-		glBindBuffer(GL_ARRAY_BUFFER, particlebuffers[currentbuffer]);
-		Particle* data = (Particle*)glMapBufferRange(GL_ARRAY_BUFFER, 0, count * sizeof(Particle), GL_MAP_READ_BIT|GL_MAP_WRITE_BIT);
-		{
-			Particle tmp;
+		sorter->GetShader()->SetVector("eyePos", &eye.x);
+		sorter->GetShader()->SetVector("viewDir", &vdir.x);
 
-			auto Distance = [&](const Particle& p) -> float {
-				Math::Vector3 pdir;
-				Math::Vec3Subtract(pdir, (const Math::Vector3&)p.position, eye);
+		sorter->Sort(particlebuffers[currentbuffer], count, false);
 
-				return Math::Vec3Dot(pdir, vdir);
-			};
+		glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 
-			for (GLuint i = 1; i < count; ++i) {
-				GLuint j = i;
-
-				while (j > 0 && Distance(data[j - 1]) < Distance(data[j])) {
-					tmp = data[j - 1];
-					data[j - 1] = data[j];
-					data[j] = tmp;
-
-					--j;
-				}
-			}
-		}
-		glUnmapBuffer(GL_ARRAY_BUFFER);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		// NOTE: shouldn't mix program pipelines with old interface
+		glUseProgram(0);
 	}
 
 	// render scene

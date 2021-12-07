@@ -594,7 +594,7 @@ void Render(float alpha, float elapsedtime)
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, multibatch->GetIndexBuffer());
 
 			// render beanbag and angel
-			GLsizei counts[2] = { meshes[0]->GetNumIndices(), meshes[2]->GetNumIndices() };
+			GLsizei counts[2] = { (GLsizei)meshes[0]->GetNumIndices(), (GLsizei)meshes[2]->GetNumIndices() };
 			const GLvoid* indexoffsets[2] = { (const GLvoid*)0, (const GLvoid*)((meshes[0]->GetNumIndices() + meshes[1]->GetNumIndices()) * sizeof(GLuint)) };
 
 			Math::MatrixIdentity(world);

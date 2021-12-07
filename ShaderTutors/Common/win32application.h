@@ -16,6 +16,19 @@
 #	include <d3d10.h>
 #endif
 
+#ifdef DIRECT3D11
+#	include <dxgi1_2.h>
+#	include <d3d11_1.h>
+
+#	ifdef _DEBUG
+#		include <dxgidebug.h>
+#	endif
+#endif
+
+#ifdef DIRECT2D
+#	include <d2d1.h>
+#endif
+
 #ifdef VULKAN
 #	define VK_USE_PLATFORM_WIN32_KHR
 #	include "vk1ext.h"
@@ -49,6 +62,17 @@ private:
 	IDXGISwapChain*				swapchain;
 #endif
 
+#ifdef DIRECT3D11
+	ID3D11Device*				device;
+	ID3D11DeviceContext*		context;
+	IDXGISwapChain*				swapchain;
+#endif
+
+#ifdef DIRECT2D
+	ID2D1Factory*				d2dfactory;
+	ID2D1HwndRenderTarget*		d2drendertarget;
+#endif
+
 #ifdef VULKAN
 	VulkanPresentationEngine*	presenter;
 #endif
@@ -65,6 +89,8 @@ private:
 	bool InitializeOpenGL(bool core = true);
 	bool InitializeDirect3D9();
 	bool InitializeDirect3D10();
+	bool InitializeDirect3D11(bool srgb);
+	bool InitializeDirect2D();
 	bool InitializeVulkan();
 
 	void InitWindow();
@@ -85,9 +111,11 @@ public:
 	uint32_t GetClientWidth() const override		{ return clientwidth; }
 	uint32_t GetClientHeight() const override		{ return clientheight; }
 
+	void* GetHandle() const override;
 	void* GetDriverInterface() const override;
 	void* GetLogicalDevice() const override;
 	void* GetSwapChain() const override;
+	void* GetDeviceContext() const override;
 };
 
 #endif

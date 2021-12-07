@@ -47,6 +47,7 @@ struct VulkanDriverInfo
 	VkSwapchainKHR						swapchain;
 	VkQueue								graphicsQueue;		// this will be used for drawing
 	VkDebugReportCallbackEXT			callback;
+	VkDebugUtilsMessengerEXT			messenger;
 
 	VkPhysicalDevice*					devices;
 	VkPhysicalDevice					selectedDevice;
@@ -73,6 +74,9 @@ struct VulkanDriverInfo
 	PFN_vkCreateDebugReportCallbackEXT	vkCreateDebugReportCallbackEXT;
 	PFN_vkDebugReportMessageEXT			vkDebugReportMessageEXT;
 	PFN_vkDestroyDebugReportCallbackEXT	vkDestroyDebugReportCallbackEXT;
+
+	PFN_vkCreateDebugUtilsMessengerEXT	vkCreateDebugUtilsMessengerEXT;
+	PFN_vkDestroyDebugUtilsMessengerEXT	vkDestroyDebugUtilsMessengerEXT;
 };
 
 struct VulkanSubAllocation
@@ -355,6 +359,8 @@ public:
 	inline uint32_t GetNumVertices() const								{ return vertexcount; }
 	inline uint32_t GetNumPolygons() const								{ return indexcount / 3; }
 	inline uint32_t GetNumSubsets() const								{ return numsubsets; }
+
+	inline VulkanAttributeRange* GetSubsetTable()						{ return subsettable; }
 
 	inline const VkDescriptorBufferInfo* GetUniformBufferInfo() const	{ return &unibufferinfo; }
 	inline const VulkanMaterial& GetMaterial(uint32_t subset) const		{ return materials[subset]; }

@@ -3,6 +3,8 @@
 
 #include "pbr_common.head"
 
+uniform sampler2D baseColorSamp;
+
 uniform vec3 lightPos;
 uniform vec3 lightRight;
 uniform vec3 lightUp;
@@ -181,16 +183,13 @@ void main()
 	float diff_lum = IntegrateDiffuse(p, n);
 	float spec_lum = IntegrateSpecular(l, p, r);
 
-	vec3 h = normalize(v + l);
-
-	float ndotv = clamp(dot(n, v), 0.0, 1.0);
-	float ndotl = clamp(dot(n, l), 0.0, 1.0);
-	float ndoth = clamp(dot(n, h), 0.0, 1.0);
-	float ldoth = clamp(dot(l, h), 0.0, 1.0);
+	//float ndotl = clamp(dot(n, l), 0.0, 1.0);
 
 	// accumulate
-	vec4 fd = BRDF_Lambertian(tex);
-	vec3 fs = BRDF_CookTorrance(ldoth, ndoth, ndotv, ndotl, max(matParams.x, 3e-2f));
+	vec4 fd = BRDF_Lambertian(baseColorSamp, tex);
+
+	//vec3 F0 = mix(vec3(0.04), baseColor.rgb, matParams.y);
+	//vec3 fs = BRDF_CookTorrance(l, v, n, F0, matParams.x);
 
 	// NOTE: specular won't work like this; have to use the LTC method
 	vec3 final_color = (fd.rgb * fd.a * diff_lum); // + (fs * spec_lum * ndotl);

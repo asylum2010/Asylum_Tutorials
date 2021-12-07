@@ -150,6 +150,7 @@ extern PFNGLDELETEQUERIESPROC						glDeleteQueries;
 extern PFNGLBEGINQUERYPROC							glBeginQuery;
 extern PFNGLENDQUERYPROC							glEndQuery;
 extern PFNGLGETQUERYOBJECTUIVPROC					glGetQueryObjectuiv;
+extern PFNGLGETBUFFERPARAMETERIVPROC				glGetBufferParameteriv;
 
 // 3.1
 extern PFNGLDRAWARRAYSINSTANCEDPROC					glDrawArraysInstanced;
@@ -228,6 +229,7 @@ extern PFNGLPROGRAMUNIFORMMATRIX4FVPROC				glProgramUniformMatrix4fv;
 
 // 4.2
 extern PFNGLTEXSTORAGE2DPROC								glTexStorage2D;
+extern PFNGLTEXSTORAGE3DPROC								glTexStorage3D;
 extern PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC	glDrawElementsInstancedBaseVertexBaseInstance;
 
 // 4.3
@@ -249,9 +251,15 @@ extern PFNGLDEBUGMESSAGECONTROLPROC					glDebugMessageControl;
 extern PFNGLDEBUGMESSAGECALLBACKPROC				glDebugMessageCallback;
 extern PFNGLGETDEBUGMESSAGELOGPROC					glGetDebugMessageLog;
 
+extern PFNGLGETPROGRAMRESOURCENAMEPROC				glGetProgramResourceName;
+extern PFNGLGETPROGRAMRESOURCEINDEXPROC				glGetProgramResourceIndex;
+extern PFNGLGETPROGRAMRESOURCEIVPROC				glGetProgramResourceiv;
+
 // 4.4
 extern PFNGLBUFFERSTORAGEPROC						glBufferStorage;
 extern PFNGLBINDVERTEXBUFFERSPROC					glBindVertexBuffers;
+extern PFNGLCLEARTEXIMAGEPROC						glClearTexImage;
+extern PFNGLCLEARTEXSUBIMAGEPROC					glClearTexSubImage;
 
 // 4.6
 extern PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC		glMultiDrawElementsIndirectCount;
@@ -369,6 +377,7 @@ public:
 	static bool ARB_debug_output;
 	static bool ARB_multi_draw_indirect;
 	static bool ARB_indirect_parameters;
+	static bool ARB_shader_group_vote;
 
 	static bool EXT_texture_compression_s3tc;
 	static bool EXT_texture_cube_map;

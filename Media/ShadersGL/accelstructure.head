@@ -1,0 +1,296 @@
+
+//include "raytrace_structs.head"
+//include "raytrace_common.head"
+
+// --- BVH traversal ----------------------------------------------------------
+
+bool IsLeaf(BVHNode node)
+{
+	return ((node.LeftOrCount & 0x80000000) == 0x80000000);
+}
+
+bool RayIntersectAABB(out vec2 hitparams, BVHNode node, vec3 raystart, vec3 invraydir)
+{
+	vec3 tnear	= invraydir * (node.Min - raystart);
+	vec3 tfar	= invraydir * (node.Max - raystart);
+	vec3 tmin	= min(tnear, tfar);
+	vec3 tmax	= max(tnear, tfar);
+
+	hitparams.x = max(tmin.x, max(tmin.y, tmin.z));
+	hitparams.y = min(tmax.x, min(tmax.y, tmax.z));
+
+	return (hitparams.y >= max(hitparams.x, 0.0));
+}
+
+bool RayIntersectTriangle(out vec4 params, PackedVertex v1, PackedVertex v2, PackedVertex v3, vec3 raystart, vec3 raydir)
+{
+	// TODO: ezeket nem kell mindig kiszamolni, eleg ha eltarolod es csak az jon le (mint triangle)
+
+	vec3 a	= v1.Values1.xyz;
+	vec3 e1	= v2.Values1.xyz - a;
+	vec3 e2	= v3.Values1.xyz - a;
+	vec3 n	= cross(e1, e2);
+
+	float u = dot(n, raydir);
+
+	if (abs(u) < 1e-14) {
+		// parallel to triangle
+		return false;
+	}
+
+	vec3 e3 = (a - raystart) / u;
+	vec3 p = cross(raydir, e3);
+
+	params.w = max(0.0, dot(n, e3));
+	params.y = -dot(p, e2);
+	params.z = dot(p, e1);
+	params.x = (1.0 - (params.y + params.z));
+
+	return all(greaterThanEqual(params.xyz, vec3(0.0)));
+}
+
+void ProcessTriangles(out Intersection isect, BVHNode node, vec3 raystart, vec3 raydir)
+{
+	PackedVertex v1, v2, v3;
+	vec4 bestparams, params;
+	uvec2 besttri;
+
+	uint index = node.RightOrStart;
+	uint last = index + (node.LeftOrCount & (~0x80000000));
+	uint i1, i2, i3;
+
+	bestparams.w = FLT_MAX;
+
+	for (; index < last; ++index) {
+		PackedVertex p1, p2, p3;
+		uvec2 tri = triangleIDs.data[index];
+
+		i1 = indices.data[tri.x + 0];
+		i2 = indices.data[tri.x + 1];
+		i3 = indices.data[tri.x + 2];
+
+		p1 = vertices.data[i1];
+		p2 = vertices.data[i2];
+		p3 = vertices.data[i3];
+
+		// do the least calculations possible
+		if (RayIntersectTriangle(params, p1, p2, p3, raystart, raydir)) {
+			if (params.w < bestparams.w) {
+				v1 = p1;
+				v2 = p2;
+				v3 = p3;
+
+				bestparams = params;
+				besttri = tri;
+			}
+		}
+	}
+
+	if (bestparams.w < FLT_MAX) {
+		isect.Position = raystart + bestparams.w * raydir;
+
+		vec3 n1 = vec3(v1.Values1.w, v1.Values2.xy);
+		vec3 n2 = vec3(v2.Values1.w, v2.Values2.xy);
+		vec3 n3 = vec3(v3.Values1.w, v3.Values2.xy);
+
+		vec2 uv1 = v1.Values2.zw;
+		vec2 uv2 = v2.Values2.zw;
+		vec2 uv3 = v3.Values2.zw;
+
+		// STRICT_NORMALS
+		//isect.Normal = normalize(cross(v2.Values1.xyz - v1.Values1.xyz, v3.Values1.xyz - v1.Values1.xyz));
+
+		isect.Normal = normalize(bestparams.x * n1 + bestparams.y * n2 + bestparams.z * n3);
+		isect.TexCoord = bestparams.x * uv1 + bestparams.y * uv2 + bestparams.z * uv3;
+
+		isect.MaterialID = besttri.y;
+	}
+
+	isect.Distance = bestparams.w;
+}
+
+void InitBVHTraverseState(out BVHTraverseState state, uint discardID, float maxdist)
+{
+	state.nodeID = 0;
+	state.discardID = discardID;
+	state.depth = 1;
+	state.maxdist = maxdist;
+}
+
+bool TraverseBVHClosestHit(inout Intersection isect, vec3 raystart, vec3 raydir)
+{
+	// NOTE: finds the closest hit point
+
+	uint	stack[32];
+	vec3	invdir		= 1.0 / raydir;
+	vec2	distances;
+	bvec3	dirisneg	= lessThan(invdir, vec3(0.0));
+	uint	nodeID		= 0;
+	uint	discardID	= isect.NodeID;
+	int		depth		= 1;
+
+	isect.Distance = FLT_MAX;
+	
+	while (depth > 0) {
+		BVHNode node = hierarchy.data[nodeID];
+
+		// test for intersection
+		if (nodeID != discardID && RayIntersectAABB(distances, node, raystart, invdir)) {
+			if (IsLeaf(node)) {
+				Intersection result;
+
+				ProcessTriangles(result, node, raystart, raydir);
+				result.NodeID = nodeID;
+
+				if (result.Distance > 0.0 && result.Distance < isect.Distance) {
+					isect = result;
+				}
+
+				// pop next candidate
+				--depth;
+				nodeID = stack[depth];
+			} else {
+				uint axis = (node.RightOrStart & 0xC0000000) >> 30;
+
+				if (dirisneg[axis]) {
+					// push left, continue right
+					stack[depth] = node.LeftOrCount;
+					nodeID = node.RightOrStart & (~0xC0000000);
+				} else {
+					// push right, continue left
+					stack[depth] = node.RightOrStart & (~0xC0000000);
+					nodeID = node.LeftOrCount;
+				}
+
+				++depth;
+			}
+		} else {
+			// no intersection, pop from stack
+			--depth;
+			nodeID = stack[depth];
+		}
+	}
+
+	return (isect.Distance < FLT_MAX);
+}
+
+bool TraverseBVHAnyHit(inout BVHTraverseState state, inout Intersection isect, vec3 raystart, vec3 raydir)
+{
+	// NOTE: finds any hit point, and can continue traveral
+	
+	vec3	invdir		= 1.0 / raydir;
+	vec2	distances;
+	bvec3	dirisneg	= lessThan(invdir, vec3(0.0));
+	
+	while (state.depth > 0) {
+		BVHNode node = hierarchy.data[state.nodeID];
+
+		// test for intersection
+		if (state.nodeID != state.discardID && RayIntersectAABB(distances, node, raystart, invdir)) {
+			if (IsLeaf(node)) {
+				Intersection result;
+
+				ProcessTriangles(result, node, raystart, raydir);
+				result.NodeID = state.nodeID;
+
+				// pop next candidate early
+				--state.depth;
+				state.nodeID = state.stack[state.depth];
+
+				// report back if anything was hit
+				if (result.Distance > 0.0 && result.Distance < state.maxdist) {
+					isect = result;
+					return true;
+				}
+			} else {
+				uint axis = (node.RightOrStart & 0xC0000000) >> 30;
+
+				if (dirisneg[axis]) {
+					// push left, continue right
+					state.stack[state.depth] = node.LeftOrCount;
+					state.nodeID = node.RightOrStart & (~0xC0000000);
+				} else {
+					// push right, continue left
+					state.stack[state.depth] = node.RightOrStart & (~0xC0000000);
+					state.nodeID = node.LeftOrCount;
+				}
+
+				++state.depth;
+			}
+		} else {
+			// no intersection, pop from stack
+			--state.depth;
+			state.nodeID = state.stack[state.depth];
+		}
+	}
+
+	return false;
+}
+
+// --- Scene intersection -----------------------------------------------------
+
+float IntersectionParameter(out vec3 norm, AreaLight light, vec3 raystart, vec3 raydir)
+{
+	float t = FLT_MAX;
+
+	switch (light.ShapeType) {
+	case SHAPE_PLATE:
+		t = RayIntersectPlate(norm, light.ToUnit, raystart, raydir);
+		break;
+
+	case SHAPE_SPHERE:
+		t = RayIntersectSphere(norm, light.ToUnit, raystart, raydir);
+		break;
+
+	default:
+		break;
+	}
+
+	return t;
+}
+
+int FindIntersectionLight(out float bestt, vec3 raystart, vec3 raydir)
+{
+	float t;
+	int index = -1;
+
+	bestt = FLT_MAX;
+
+	for (int i = 0; i < NUM_LIGHTS; ++i) {
+		AreaLight light = lights.data[i];
+		vec3 n;
+
+		t = IntersectionParameter(n, light, raystart, raydir);
+
+		if (t < bestt) {
+			bestt	= t;
+			index	= i;
+		}
+	}
+
+	return index;
+}
+
+int FindIntersection(inout Intersection isect, vec3 raystart, vec3 raydir)
+{
+	float bestt = FLT_MAX;
+	int index = FindIntersectionLight(bestt, raystart, raydir);
+
+	// then BVH
+	if (TraverseBVHClosestHit(isect, raystart, raydir)) {
+		if (bestt < isect.Distance) {
+			// light is closer (return light index, NodeID is -1)
+			isect.Position = raystart + bestt * raydir;
+			isect.Distance = bestt;
+			isect.NodeID = -1;
+		} else {
+			// object is closer (return node index)
+			index = int(isect.NodeID);
+		}
+	} else {
+		// return light index or -1, NodeID is -1
+		isect.NodeID = -1;
+	}
+
+	return index;
+}

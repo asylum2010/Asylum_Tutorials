@@ -1,7 +1,16 @@
 
-#ifndef FLT_MAX
-#define FLT_MAX		3.402823466e+38
-#endif
+//include "pbr_common.head"
+
+#define SHAPE_EMITTER	1
+#define SHAPE_PLATE		2
+#define SHAPE_SPHERE	4
+
+struct Ray
+{
+	vec4 PositionAndPDF;
+	vec4 DirectionAndPDF;
+	vec3 Normal;
+};
 
 float RayIntersectPlane(out vec3 n, vec4 p, vec3 start, vec3 dir)
 {
@@ -13,23 +22,22 @@ float RayIntersectPlane(out vec3 n, vec4 p, vec3 start, vec3 dir)
 	if (u < -1e-5)
 		t = -(start.x * p.x + start.y * p.y + start.z * p.z + p.w) / u;
 
-	return ((t > 0.0f) ? t : FLT_MAX);
+	return ((t > 0.0) ? t : FLT_MAX);
 }
 
 float RayIntersectSphere(out vec3 n, vec3 center, float radius, vec3 start, vec3 dir)
 {
 	vec3 stoc = start - center;
-
-	float a = dot(dir, dir);
-	float b = 2.0 * dot(stoc, dir);
+	float b = dot(stoc, dir);
 	float c = dot(stoc, stoc) - radius * radius;
-	float d = b * b - 4.0 * a * c;
-	float t = 0.0;
+	float d = b * b - c;
+	float t;
 
-	if (d > 0.0)
-		t = (-b - sqrt(d)) / (2.0 * a);
+	if (d < 0.0)
+		return FLT_MAX;
 
-	n = normalize(start + t * dir - center);
+	t = -b - sqrt(d);
+	n = (start + t * dir - center) / radius;
 
 	return ((t > 0.0) ? t : FLT_MAX);
 }
@@ -122,4 +130,195 @@ float RayIntersectCylinder(out vec3 n, vec4 pos, vec4 axis, vec3 start, vec3 dir
 	}
 
 	return ((t > 0.0) ? t : FLT_MAX);
+}
+
+// --- Matrix-based intersection tests ----------------------------------------
+
+float RayIntersectPlate(out vec3 n, mat4 tounit, vec3 start, vec3 dir)
+{
+	// transform to canonical basis
+	vec3 ustart = (tounit * vec4(start, 1.0)).xyz;
+	vec3 udir = (tounit * vec4(dir, 0.0)).xyz;
+
+	float u = udir.y;
+	float t = FLT_MAX;
+
+	if (u != 0.0)
+		t = -(ustart.y / u);
+
+	if (t > 0.0) {
+		vec3 hitpos = ustart + t * udir;
+
+		if (hitpos.x < 0.0 || hitpos.x > 1.0 || hitpos.z < 0.0 || hitpos.z > 1.0)
+			t = FLT_MAX;
+	} else {
+		t = FLT_MAX;
+	}
+
+	// normal is covariant
+	n = normalize((vec4(0.0, -sign(u), 0.0, 0.0) * tounit).xyz);
+
+	return t;
+}
+
+float RayIntersectPlate(out vec3 n, out vec2 uv, mat4 tounit, vec3 start, vec3 dir)
+{
+	// transform to canonical basis
+	vec3 ustart = (tounit * vec4(start, 1.0)).xyz;
+	vec3 udir = (tounit * vec4(dir, 0.0)).xyz;
+
+	float u = udir.y;
+	float t = FLT_MAX;
+
+	if (u != 0.0)
+		t = -(ustart.y / u);
+
+	if (t > 0.0) {
+		vec3 hitpos = ustart + t * udir;
+
+		if (hitpos.x < 0.0 || hitpos.x > 1.0 || hitpos.z < 0.0 || hitpos.z > 1.0)
+			t = FLT_MAX;
+
+		uv = hitpos.xz;
+	} else {
+		t = FLT_MAX;
+	}
+
+	// normal is covariant
+	n = normalize((vec4(0.0, -sign(u), 0.0, 0.0) * tounit).xyz);
+
+	return t;
+}
+
+float RayIntersectSphere(out vec3 n, mat4 tounit, vec3 start, vec3 dir)
+{
+	// transform to canonical basis
+	vec3 ustart = (tounit * vec4(start, 1.0)).xyz;
+	vec3 udir = (tounit * vec4(dir, 0.0)).xyz;
+
+	float a = dot(udir, udir);
+	float b = 2.0 * dot(ustart, udir);
+	float c = dot(ustart, ustart) - 1.0;
+	float d = b * b - 4.0 * a * c;
+	float t = 0.0;
+	
+	bool outside = (dot(ustart, ustart) > 1.0);
+
+	if (d > 0.0) {
+		if (outside)
+			t = (-b - sqrt(d)) / (2.0 * a);
+		else
+			t = (-b + sqrt(d)) / (2.0 * a);
+	}
+
+	// normal is covariant
+	n = ustart + t * udir;
+	n = normalize((vec4(n, 0.0) * tounit).xyz);
+
+	return ((t > 0.0) ? t : FLT_MAX);
+}
+
+// --- Ray samplers -----------------------------------------------------------
+
+void SampleRayFromSphere(out Ray ray, vec3 p, vec3 center, float radius, vec2 xi)
+{
+	// NOTE: samples ray leaving the sphere, pointing towards given point
+	// http://www.pbr-book.org/3ed-2018/Light_Transport_I_Surface_Reflection/Sampling_Light_Sources.html
+
+	vec3 d = p - center;
+	vec3 nd = normalize(d);
+
+	float sinthetamax2 = (radius * radius) / dot(d, d);
+	float costhetamax = sqrt(1.0 - sinthetamax2);
+	float costheta = (costhetamax - 1.0) * xi.y + 1.0;
+	float sintheta2 = (1.0 - costheta * costheta);
+	float phi = TWO_PI * xi.x;
+
+	float dc = length(d);
+	float ds = dc * costheta - sqrt(max(0.0, radius * radius - dc * dc * sintheta2));
+	float cosalpha = (dc * dc + radius * radius - ds * ds) / (2.0 * dc * radius);
+
+	ray.Normal = TransformToHemisphere(nd, phi, cosalpha);
+
+	ray.PositionAndPDF.xyz = center + radius * ray.Normal;
+	ray.PositionAndPDF.w = 1.0 / (QUAD_PI * radius * radius);
+
+	ray.DirectionAndPDF.xyz = normalize(ray.PositionAndPDF.xyz - p);
+	ray.DirectionAndPDF.w = 1.0 / (TWO_PI * (1.0 - costhetamax));
+}
+
+vec2 PDF_RayFromSphere(vec3 wo, vec3 center, float radius)
+{
+	vec2 ret = vec2(0.0);
+
+	// position is uniform
+	ret.x = 1.0 / (QUAD_PI * radius * radius);
+
+	// direction is cone
+	float sinthetamax2 = (radius * radius) / dot(wo, wo);
+	float costhetamax = sqrt(1.0 - sinthetamax2);
+
+	ret.y = 1.0 / (TWO_PI * (1.0 - costhetamax));
+
+	return ret;
+}
+
+void SampleRayFromRect(out Ray ray, vec3 p, vec3 o, vec3 t, vec3 b, vec2 xi)
+{
+	// NOTE: samples ray leaving the rect, pointing towards given point
+
+	vec3 n = cross(b, t);
+	vec3 s = o + xi.x * t + xi.y * b;
+	vec3 d = s - p;
+	
+	float dist2 = dot(d, d);
+
+	// uniform sample position
+	ray.PositionAndPDF.xyz = o + xi.x * t + xi.y * b;
+	ray.PositionAndPDF.w = 1.0 / length(n);
+
+	// CONSOLIDATE: itt is meg kell forditani a normalt
+	//if (dot(n, d) > 0.0)
+	//	n = -n;
+
+	// calculate direction
+	ray.Normal = normalize(n);
+	ray.DirectionAndPDF.xyz = normalize(d);
+
+	// convert from area density to solid angle density
+	float costheta_area = -dot(ray.DirectionAndPDF.xyz, n);
+	ray.DirectionAndPDF.w = ((costheta_area < EPSILON) ? 0.0 : (dist2 / costheta_area));
+}
+
+void SampleRayFromRect(out Ray ray, vec3 o, vec3 t, vec3 b, vec2 xi1, vec2 xi2)
+{
+	// NOTE: samples ray leaving the rect, random direction
+
+	vec4 ret;
+	vec3 n = cross(b, t);
+
+	// uniform sample ray origin
+	ray.PositionAndPDF.xyz = o + xi1.x * t + xi1.y * b;
+	ray.PositionAndPDF.w = 1.0 / length(n);
+
+	ray.Normal = normalize(n);
+
+	// sample ray direction
+	ray.DirectionAndPDF.xyz = CosineSampleHemisphere(ray.Normal, xi2);
+	ray.DirectionAndPDF.w = PDF_Cosine(ray.Normal, ray.DirectionAndPDF.xyz);
+}
+
+vec2 PDF_RayFromRect(vec3 wo, vec3 t, vec3 b)
+{
+	vec2 ret = vec2(0.0);
+	vec3 n = cross(b, t);
+
+	// position is uniform
+	ret.x = 1.0 / length(n);
+
+	// direction is cosine
+	n = normalize(n);
+	ret.y = PDF_Cosine(n, wo);
+
+	return ret;
 }

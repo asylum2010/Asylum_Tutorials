@@ -2,7 +2,12 @@
 #ifndef _MACOSAPPLICATION_H_
 #define _MACOSAPPLICATION_H_
 
-#import <MetalKit/MetalKit.h>
+#if defined(METAL)
+#	import <MetalKit/MetalKit.h>
+#else
+#	import <Cocoa/Cocoa.h>
+#endif
+
 #import "application.h"
 
 class macOSApplication : public Application
@@ -13,8 +18,12 @@ private:
 	uint32_t clientheight;
 	
 public:
+#if defined(METAL)
 	MTKView* metalView;
 	id<MTLDevice> metalDevice;
+#elif defined(OPENGL)
+	NSView* metalView;	// didn't plan to use GL again...
+#endif
 	
 	macOSApplication(uint32_t width, uint32_t height);
 	~macOSApplication();
@@ -30,9 +39,11 @@ public:
 	uint32_t GetClientWidth() const override		{ return clientwidth; }
 	uint32_t GetClientHeight() const override		{ return clientheight; }
 	
+	void* GetHandle() const override				{ return nullptr; }
 	void* GetDriverInterface() const override		{ return nullptr; }
-	void* GetLogicalDevice() const override			{ return (void*)CFBridgingRetain(metalDevice); }
-	void* GetSwapChain() const override				{ return (void*)CFBridgingRetain(metalView); }
+	void* GetLogicalDevice() const override;
+	void* GetSwapChain() const override;
+	void* GetDeviceContext() const override;		{ return nullptr; }
 	
 	//specific
 	NSString* GetTitle() const						{ return windowtitle; }

@@ -97,6 +97,7 @@
     <ClCompile Include="..\..\ShaderTutors\Common\3Dmath.cpp" />
     <ClCompile Include="..\..\ShaderTutors\Common\application.cpp" />
     <ClCompile Include="..\..\ShaderTutors\Common\basiccamera.cpp" />
+    <ClCompile Include="..\..\ShaderTutors\Common\bitonicsorter.cpp" />
     <ClCompile Include="..\..\ShaderTutors\Common\dds.cpp" />
     <ClCompile Include="..\..\ShaderTutors\Common\geometryutils.cpp" />
     <ClCompile Include="..\..\ShaderTutors\Common\gl4ext.cpp" />
@@ -107,6 +108,7 @@
     <ClInclude Include="..\..\ShaderTutors\Common\3Dmath.h" />
     <ClInclude Include="..\..\ShaderTutors\Common\application.h" />
     <ClInclude Include="..\..\ShaderTutors\Common\basiccamera.h" />
+    <ClInclude Include="..\..\ShaderTutors\Common\bitonicsorter.h" />
     <ClInclude Include="..\..\ShaderTutors\Common\dds.h" />
     <ClInclude Include="..\..\ShaderTutors\Common\geometryutils.h" />
     <ClInclude Include="..\..\ShaderTutors\Common\gl4ext.h" />
@@ -126,6 +128,7 @@
     <None Include="..\..\Media\ShadersGL\smokeemitter.geom" />
     <None Include="..\..\Media\ShadersGL\smokeupdate.geom" />
     <None Include="..\..\Media\ShadersGL\smokeupdate.vert" />
+    <None Include="..\..\Media\ShadersGL\sortparticles.comp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,7 +1,7 @@
 
-#version 430
+#version 330
 
-layout(location = 2) uniform vec2 lineThickness;
+uniform vec2 lineThickness;
 
 layout(lines) in;
 layout(triangle_strip, max_vertices = 4) out;

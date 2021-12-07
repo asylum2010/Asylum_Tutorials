@@ -35,6 +35,7 @@ private:
 	float			aspect;
 	float			speed;
 	bool			finished;
+	bool			inertial;
 
 	void GetViewVectors(Math::Vector3& forward, Math::Vector3& right, Math::Vector3& up);
 
@@ -64,6 +65,7 @@ public:
 	inline void SetFov(float value)						{ fov = value; }
 	inline void SetClipPlanes(float znear, float zfar)	{ nearplane = znear; farplane = zfar; }
 	inline void SetSpeed(float value)					{ speed = value; }
+	inline void SetIntertia(bool enable)				{ inertial = enable; }
 
 	inline float GetAspect() const						{ return aspect; }
 	inline float GetNearPlane() const					{ return nearplane; }

@@ -17,6 +17,7 @@ BasicCamera::BasicCamera()
 	minpitch	= -Math::HALF_PI;
 	maxpitch	= Math::HALF_PI;
 	finished	= true;
+	inertial	= true;
 
 	// NOTE: ignore XCode warning, the template handles promotion
 	anglecurve.Set(0, 0, 0);
@@ -35,6 +36,12 @@ void BasicCamera::OrbitUp(float angle)
 	targetangles[1] += angle * ROTATIONAL_SPEED;
 	targetangles[1] = Math::Clamp(targetangles[1], minpitch, maxpitch);
 
+	finished = false;
+}
+
+void BasicCamera::RollRight(float angle)
+{
+	targetangles[2] += angle * ROTATIONAL_SPEED;
 	finished = false;
 }
 
@@ -137,7 +144,7 @@ void BasicCamera::Update(float dt)
 
 	diff1[0] = (targetangles[0] - anglecurve[0]) * dt * ROTATIONAL_INVINTERTIA;
 	diff1[1] = (targetangles[1] - anglecurve[1]) * dt * ROTATIONAL_INVINTERTIA;
-	diff1[2] = 0;
+	diff1[2] = (targetangles[2] - anglecurve[2]) * dt * ROTATIONAL_INVINTERTIA;
 
 	anglecurve.Advance(diff1);
 
@@ -158,9 +165,15 @@ void BasicCamera::Update(float dt)
 
 void BasicCamera::Animate(float alpha)
 {
-	anglecurve.Smooth(smoothedangles, alpha);
-	pancurve.Smooth(position, alpha);
-	zoomcurve.Smooth(&distance, alpha);
+	if (inertial) {
+		anglecurve.Smooth(smoothedangles, alpha);
+		pancurve.Smooth(position, alpha);
+		zoomcurve.Smooth(&distance, alpha);
+	} else {
+		smoothedangles = targetangles;
+		position = targetpan;
+		distance = targetzoom;
+	}
 }
 
 void BasicCamera::SetOrientation(float yaw, float pitch, float roll)

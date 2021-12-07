@@ -48,6 +48,10 @@ struct Vector2
 	Vector2(float _x, float _y);
 	Vector2(const float* values);
 
+	Vector2 operator +(const Vector2& v) const;
+	Vector2 operator -(const Vector2& v) const;
+	Vector2 operator *(float s) const;
+
 	Vector2& operator =(const Vector2& other);
 
 	inline operator float*()					{ return &x; }
@@ -66,6 +70,7 @@ struct Vector3
 	Vector3(float _x, float _y, float _z);
 	Vector3(const float* values);
 
+	Vector3 operator *(const Vector3& v) const;
 	Vector3 operator +(const Vector3& v) const;
 	Vector3 operator -(const Vector3& v) const;
 	Vector3 operator *(float s) const;
@@ -254,6 +259,8 @@ public:
 	Color(float _r, float _g, float _b, float _a);
 	Color(uint32_t argb32);
 
+	Color operator *(float f);
+
 	Color& operator =(const Color& other);
 	Color& operator *=(const Color& other);
 
@@ -314,6 +321,7 @@ uint32_t Vec3ToUbyte4(const Math::Vector3& v);
 
 float Vec2Dot(const Vector2& a, const Vector2& b);
 float Vec2Length(const Vector2& v);
+float Vec2Distance(const Vector2& a, const Vector2& b);
 
 float Vec3Dot(const Vector3& a, const Vector3& b);
 float Vec3Length(const Vector3& v);
@@ -347,6 +355,7 @@ void Vec4Transform(Vector4& out, const Vector4& v, const Matrix& m);
 void Vec4TransformTranspose(Vector4& out, const Matrix& m, const Vector4& v);
 
 void PlaneFromNormalAndPoint(Vector4& out, const Vector3& n, const Vector3& p);
+void PlaneFromTriangle(Vector4& out, const Vector3& a, const Vector3& b, const Vector3& c);
 void PlaneNormalize(Vector4& out, const Vector4& p);
 void PlaneTransform(Vector4& out, const Vector4& p, const Matrix& m);
 void PlaneTransformTranspose(Vector4& out, const Matrix& m, const Vector4& p);
@@ -364,6 +373,7 @@ void MatrixLookAtRH(Matrix& out, const Vector3& eye, const Vector3& look, const 
 void MatrixMultiply(Matrix& out, const Matrix& a, const Matrix& b);
 void MatrixPerspectiveFovLH(Matrix& out, float fovy, float aspect, float nearplane, float farplane);
 void MatrixPerspectiveFovRH(Matrix& out, float fovy, float aspect, float nearplane, float farplane);
+void MatrixOrthoOffCenterLH(Matrix& out, float left, float right, float bottom, float top, float nearplane, float farplane);
 void MatrixOrthoOffCenterRH(Matrix& out, float left, float right, float bottom, float top, float nearplane, float farplane);
 void MatrixReflect(Math::Matrix& out, const Math::Vector4& plane);
 void MatrixRotationAxis(Matrix& out, float angle, float x, float y, float z);
@@ -382,12 +392,16 @@ int FrustumIntersect(const Math::Vector4 frustum[6], const AABox& box);
 
 // --- Utility functions ------------------------------------------------------
 
+float F0FromEta(float eta);
 float Gaussian(float x, float stddev);
+float ImagePlaneArea(const Matrix& proj);
 
 std::string& GetPath(std::string& out, const std::string& str);
 std::string& GetFile(std::string& out, const std::string& str);
 std::string& GetExtension(std::string& out, const std::string& str);
 std::string& ToLower(std::string& out, const std::string& str);
+
+void SaveToTGA(const std::string& file, uint32_t width, uint32_t height, void* pixels);
 
 // --- Inline functions -------------------------------------------------------
 
@@ -437,6 +451,26 @@ inline float HorizontalFov(float vfov, float w, float h) {
 	return atan2f(w * tanf(vfov * 0.5f), h) * 2;
 }
 
+inline uint32_t FloatBitsToUint(float value) {
+	return *((uint32_t*)&value);
+}
+
+inline float UintBitsToFloat(uint32_t value) {
+	return *((float*)&value);
+}
+
+inline float EMToDIP(float emsize) {
+	return (emsize / 96.0f) * 72.0f;
+}
+
+inline float DIPToEM(float points) {
+	return (points / 72.0f) * 96.0f;
+}
+
+inline uint32_t As_Uint(float value) {
+	return *((uint32_t*)&value);
+}
+
 }
 
 // --- Operator overloads -----------------------------------------------------
@@ -446,5 +480,7 @@ Math::Vector3 operator *(float f, const Math::Vector3& v);
 Math::Vector4 operator *(float f, const Math::Vector4& v);
 
 Math::Vector4 operator /(float f, const Math::Vector4& v);
+
+Math::Color operator *(float f, const Math::Color& color);
 
 #endif

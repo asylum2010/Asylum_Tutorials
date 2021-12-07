@@ -1,0 +1,431 @@
+
+//include "raytrace_structs.head"
+//include "pbr_common.head"
+
+#define BSDF_DIFFUSE		0
+#define BSDF_SPECULAR		1	// Dirac delta (when roughness < 0.05)
+#define BSDF_INSULATOR		2
+#define BSDF_CONDUCTOR		4
+#define BSDF_DIELECTRIC		8
+#define BSDF_TRANSPARENT	16	// diffuse with alpha
+
+// --- Perfect specular BSDFs -------------------------------------------------
+
+bool SampleDielectric(out vec4 wi_pdf, BSDFInfo info, vec3 v, vec3 n, bool entering)
+{
+	float eta	= uintBitsToFloat(info.params.w);
+	float F0	= F0FromEta(eta);
+	float F		= F_Schlick(F0, dot(v, n));
+	float u		= Random1();
+
+	if (entering) {
+		wi_pdf.xyz = refract(-v, n, 1.0 / eta);
+	} else {
+		wi_pdf.xyz = refract(-v, -n, eta);
+		F = F_Schlick(F0, dot(wi_pdf.xyz, n));
+	}
+
+	if (u < F) {
+		// reflect
+		wi_pdf = vec4(2.0 * dot(v, n) * n - v, F);
+	} else {
+		// refract
+		wi_pdf.w = (1.0 - F);
+
+		if (all(equal(wi_pdf.xyz, vec3(0.0)))) {
+			// total internal reflection
+
+			// NOTE: the path will be terminated atm.
+			wi_pdf.w = 0.0;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void SampleDiracDeltaConductor(out vec4 wi_pdf, BSDFInfo info, vec3 v, vec3 n)
+{
+	wi_pdf = vec4(2.0 * dot(v, n) * n - v, 1.0);
+}
+
+void SampleDiracDeltaInsulator(out vec4 wi_pdf, BSDFInfo info, vec3 v, vec3 n, vec2 xi)
+{
+	if (xi.x <= 0.5) {
+		// sample diffuse part
+		xi.x = 2.0 * xi.x;
+
+		wi_pdf.xyz = CosineSampleHemisphere(n, xi);
+	} else {
+		xi.x = 2.0 * (xi.x - 0.5);
+
+		// sample specular part
+		wi_pdf = vec4(2.0 * dot(v, n) * n - v, 1.0);
+	}
+
+	float pdf_diff = PDF_Cosine(n, wi_pdf.xyz);
+
+	wi_pdf.w = 0.5 * (pdf_diff + 1.0);
+}
+
+bool SampleDiracDeltaDielectric(out vec4 wi_pdf, BSDFInfo info, vec3 v, vec3 n, vec2 xi)
+{
+	bool entering = (dot(v, n) > 0.0);
+
+	// CONSOLIDATE: itt nem engedi tovabb a tukrozodest (??? dehogynem)
+	// CONSOLIDATE: pdf-et itt is konvertalni (miert kene???)
+
+	return SampleDielectric(wi_pdf, info, v, n, entering);
+}
+
+bool SampleDiracDelta(out vec4 wi_pdf, BSDFInfo info, vec3 v, vec3 n, vec2 xi)
+{
+	uint bsdftype = (info.params.y & (~BSDF_SPECULAR));
+
+	if (bsdftype == BSDF_CONDUCTOR) {
+		SampleDiracDeltaConductor(wi_pdf, info, v, n);
+	} else if (bsdftype == BSDF_DIELECTRIC) {
+		return SampleDiracDeltaDielectric(wi_pdf, info, v, n, xi);
+	} else if (bsdftype == BSDF_INSULATOR) {
+		SampleDiracDeltaInsulator(wi_pdf, info, v, n, xi);
+	}
+
+	return false;
+}
+
+vec3 EvaluateDiracDelta(BSDFInfo info, vec3 wo, vec3 n)
+{
+	vec3 ret = vec3(0.0);
+	uint bsdftype = (info.params.y & (~BSDF_SPECULAR));
+
+	if (bsdftype == BSDF_CONDUCTOR) {
+		ret = F_Schlick(info.color.rgb, dot(wo, n));
+	} else if (bsdftype == BSDF_DIELECTRIC) {
+		ret = info.color.rgb;
+	} else if (bsdftype == BSDF_INSULATOR) {
+		ret = info.color.rgb;	// ?
+	}
+	
+	return ret;
+}
+
+// --- Microfacet BSDFs -------------------------------------------------------
+
+float JacobianReflect(float pdf, vec3 v, vec3 h)
+{
+	return pdf / (4.0 * dot(v, h));
+}
+
+float JacobianRefract(float pdf, vec3 l, vec3 v, vec3 h, float eta)
+{
+	float sqrtdenom = dot(v, h) + eta * dot(l, h);
+	return pdf * abs(dot(l, h)) / (sqrtdenom * sqrtdenom);
+}
+
+float PDF_MicrofacetReflection(vec3 v, vec3 n, vec3 h, float roughness)
+{
+#if SAMPLE_VISIBLE
+	return JacobianReflect(PDF_GGXVisible(n, v, h, roughness), v, h);
+#else
+	return JacobianReflect(PDF_GGX(n, h, roughness), v, h);
+#endif
+}
+
+void SampleMicrofacetReflection(out vec3 h, out float pdf, vec3 v, vec3 n, float roughness, vec2 xi)
+{
+#if SAMPLE_VISIBLE
+	h = GGXSampleHemisphereVisible(n, v, roughness, xi);
+	pdf = JacobianReflect(PDF_GGXVisible(n, v, h, roughness), v, h);
+#else
+	h = GGXSampleHemisphere(n, roughness, xi);
+	pdf = JacobianReflect(PDF_GGX(n, h, roughness), v, h);
+#endif
+}
+
+bool SampleMicrofacetRefraction(out vec3 h, out float pdf, vec3 v, vec3 n, float roughness, vec2 xi)
+{
+	bool entering = (dot(v, n) > 0.0);
+
+#if SAMPLE_VISIBLE
+	if (entering) {
+		h = GGXSampleHemisphereVisible(n, v, roughness, xi);
+		pdf = PDF_GGXVisible(n, v, h, roughness);
+	} else {
+		h = GGXSampleHemisphereVisible(n, -v, roughness, xi);
+		pdf = PDF_GGXVisible(n, -v, h, roughness);
+	}
+#else
+	h = GGXSampleHemisphere(n, roughness, xi);
+	pdf = PDF_GGX(n, h, roughness);
+#endif
+
+	return entering;
+}
+
+vec4 EvaluateBSDF(BSDFInfo info, vec3 l, vec3 v, vec3 n, vec2 uv)
+{
+	// NOTE: used in epxlicit light sampling
+
+	vec4 ret		= vec4(0.0);
+	vec3 albedo		= info.color.rgb;
+	vec3 h			= normalize(l + v);
+
+	float roughness	= uintBitsToFloat(info.params.z);
+	float eta		= uintBitsToFloat(info.params.w);
+	float F0		= F0FromEta(eta);
+	float ndotl		= dot(n, l);
+	float ndotv		= dot(n, v);
+
+	// NOTE: must be in same hemisphere
+	if (ndotl * ndotv < 0.0) {	// TWOSIDED
+		return ret;
+	}
+
+	bool diracdelta	= ((info.params.y & BSDF_SPECULAR) == BSDF_SPECULAR);
+	uint bsdftype	= (info.params.y & (~BSDF_SPECULAR));
+	uint textureID	= info.params.x;
+
+	// CONSOLIDATE: pointless? (returns zero anyway)
+	//if (diracdelta)
+	//	return vec4(EvaluateDiracDelta(info, v, n), 1.0);
+
+	if (textureID != -1)
+		albedo = texture(albedoTextures, vec3(uv, float(textureID))).rgb;
+
+	switch (bsdftype) {
+	case BSDF_DIFFUSE:
+		// pure diffuse
+		ret.xyz = albedo * ONE_OVER_PI;
+		ret.w = PDF_Cosine(n, l);
+
+		break;
+
+	//case BSDF_TRANSPARENT:
+		// NOTE: not handling transparency here!
+		//break;
+
+	case BSDF_INSULATOR: {
+		float pdf_diff = PDF_Cosine(n, l);
+		float pdf_spec = PDF_MicrofacetReflection(v, n, h, roughness);
+
+		ret.xyz = AshikhminShirley_General(l, v, h, n, albedo, roughness);
+		ret.w = 0.5 * (pdf_diff + pdf_spec);
+
+		} break;
+
+	case BSDF_CONDUCTOR:
+		// metals have no diffuse color
+		ret.xyz = CookTorrance_General(l, v, n, info.color.rgb, roughness);
+
+#if SAMPLE_VISIBLE
+		ret.w = JacobianReflect(PDF_GGXVisible(n, v, h, roughness), v, h);
+#else
+		ret.w = JacobianReflect(PDF_GGX(n, h, roughness), v, h);
+#endif
+
+		break;
+
+	case BSDF_DIELECTRIC:
+		// NOTE: not handling refraction here!
+		ret.xyz = CookTorrance_General(l, v, n, vec3(F0), roughness);
+
+#if SAMPLE_VISIBLE
+		ret.w = JacobianReflect(PDF_GGXVisible(n, v, h, roughness), v, h);
+#else
+		ret.w = JacobianReflect(PDF_GGX(n, h, roughness), v, h);
+#endif
+
+		break;
+
+	default:
+		break;
+	}
+
+	return ret;
+}
+
+bool SampleEvaluateBSDFImportance(out vec4 wi_pdf, out vec3 value, BSDFInfo info, vec3 v, vec3 n, vec2 uv, vec2 xi)
+{
+	vec3 h;
+	vec3 albedo		= info.color.rgb;
+
+	float roughness	= uintBitsToFloat(info.params.z);
+	float eta		= uintBitsToFloat(info.params.w);
+	float F0		= F0FromEta(eta);
+	float ndotv		= dot(n, v);
+	
+	uint bsdftype	= (info.params.y & (~BSDF_SPECULAR));
+	uint textureID	= info.params.x;
+
+	bool diracdelta	= ((info.params.y & BSDF_SPECULAR) == BSDF_SPECULAR);
+	bvec2 ent_ref	= bvec2(false);		// x = entering, y = refracted
+
+	if (diracdelta) {
+		ent_ref.y = SampleDiracDelta(wi_pdf, info, v, n, xi);
+		value = EvaluateDiracDelta(info, v, n);
+
+		return ent_ref.y;
+	}
+
+	if (textureID != -1)
+		albedo = texture(albedoTextures, vec3(uv, float(textureID))).rgb;
+
+	value = vec3(0.0);
+
+	switch (bsdftype) {
+	case BSDF_DIFFUSE:
+#ifdef ENABLE_TWOSIDED
+		if (ndotv < 0.0)
+			n = -n;
+#endif
+
+		wi_pdf.xyz = CosineSampleHemisphere(n, xi);
+		wi_pdf.w = PDF_Cosine(n, wi_pdf.xyz);
+
+		value = albedo;
+		break;
+
+	case BSDF_TRANSPARENT: {
+		float prob = dot(vec3(info.color.a), vec3(0.212671, 0.715160, 0.072169));
+
+		if (xi.x < prob) {
+			xi.x /= prob;
+
+			if (ndotv > 0.0) {
+				wi_pdf.xyz = CosineSampleHemisphere(n, xi);
+				wi_pdf.w = PDF_Cosine(n, wi_pdf.xyz) * prob;
+
+				value = albedo * info.color.a / prob;
+			}
+		} else {
+			// let it through
+			wi_pdf.xyz = -v;
+			wi_pdf.w = 1.0 - prob;
+
+			value = vec3((1.0 - info.color.a) / wi_pdf.w);
+		}
+
+		} break;
+	
+	case BSDF_INSULATOR: {
+#ifdef ENABLE_TWOSIDED
+		if (ndotv < 0.0)
+			n = -n;
+#endif
+
+		if (xi.x <= 0.5) {
+			// sample diffuse part
+			xi.x = 2.0 * xi.x;
+
+			wi_pdf.xyz = CosineSampleHemisphere(n, xi);
+			h = normalize(wi_pdf.xyz + v);
+		} else {
+			xi.x = 2.0 * (xi.x - 0.5);
+
+			// sample specular part
+			SampleMicrofacetReflection(h, wi_pdf.w, v, n, roughness, xi);
+			wi_pdf.xyz = 2.0 * dot(v, h) * h - v;
+		}
+
+		float pdf_diff = PDF_Cosine(n, wi_pdf.xyz);
+		float pdf_spec = PDF_MicrofacetReflection(v, n, h, roughness);
+		float ndotl = max(dot(n, wi_pdf.xyz), 0.0);
+
+		wi_pdf.w = 0.5 * (pdf_diff + pdf_spec);
+
+		value = AshikhminShirley_General(wi_pdf.xyz, v, h, n, albedo, roughness);
+		value = (value * ndotl) / wi_pdf.w;
+
+		} break;
+
+	case BSDF_CONDUCTOR:
+#ifdef ENABLE_TWOSIDED
+		if (ndotv < 0.0)
+			n = -n;
+#endif
+
+		SampleMicrofacetReflection(h, wi_pdf.w, v, n, roughness, xi);
+		wi_pdf.xyz = 2.0 * dot(v, h) * h - v;
+
+		value = CookTorrance_GGX(wi_pdf.xyz, v, h, n, info.color.rgb, roughness);
+		break;
+
+	case BSDF_DIELECTRIC: {
+		vec4 tmp;
+
+		ent_ref.x = SampleMicrofacetRefraction(h, wi_pdf.w, v, n, roughness, xi);
+		ent_ref.y = SampleDielectric(tmp, info, v, h, ent_ref.x);
+
+		wi_pdf.xyz = tmp.xyz;
+
+		tmp.x = (ent_ref.y ? JacobianRefract(wi_pdf.w, wi_pdf.xyz, v, h, eta) : JacobianReflect(wi_pdf.w, v, h));
+		tmp.y = (ent_ref.y ? JacobianRefract(wi_pdf.w, wi_pdf.xyz, -v, h, eta) : JacobianReflect(wi_pdf.w, -v, h));
+
+		wi_pdf.w = (ent_ref.x ? tmp.x : tmp.y);
+
+		value = CookTorrance_FresnelGGX(wi_pdf.xyz, v, n, roughness, eta, ent_ref);
+
+		// CONSOLIDATE: colored glass (how?)
+		//if (ent_ref.y)
+		//	value *= info.color.rgb;
+
+		} break;
+
+	default:
+		break;
+	}
+
+	return ent_ref.y;
+}
+
+float PDF_BSDF(BSDFInfo info, vec3 l, vec3 v, vec3 n)
+{
+	// NOTE: used in BDPT multiple importance sampling
+	
+	float ret		= 0.0;
+	float roughness = uintBitsToFloat(info.params.z);
+	float eta		= uintBitsToFloat(info.params.w);
+	float ndotv		= max(0.0, dot(n, v));
+
+	bool diracdelta	= ((info.params.y & BSDF_SPECULAR) == BSDF_SPECULAR);
+	uint bsdftype	= (info.params.y & (~BSDF_SPECULAR));
+
+	vec3 h = normalize(l + v);
+
+	if (diracdelta)
+		return 0.0;
+
+	switch (bsdftype) {
+	case BSDF_DIFFUSE:
+		ret = PDF_Cosine(n, l);
+		break;
+
+	case BSDF_TRANSPARENT: {
+		// CONSOLIDATE: depends on measure
+		float prob = dot(vec3(info.color.a), vec3(0.212671, 0.715160, 0.072169));
+		ret = PDF_Cosine(n, l) * prob;
+		} break;
+
+	case BSDF_INSULATOR: {
+		float pdf_diff = PDF_Cosine(n, l);
+		float pdf_spec = PDF_MicrofacetReflection(v, n, h, roughness);
+
+		ret = 0.5 * (pdf_diff + pdf_spec);
+		} break;
+
+	case BSDF_CONDUCTOR:
+		ret = PDF_MicrofacetReflection(v, n, h, roughness);
+		break;
+
+	case BSDF_DIELECTRIC:
+		// CONSOLIDATE: handle entering/leaving
+		ret = JacobianRefract(PDF_GGXVisible(n, v, h, roughness), l, v, h, eta);
+		break;
+
+	default:
+		break;
+	}
+
+	return ret;
+}

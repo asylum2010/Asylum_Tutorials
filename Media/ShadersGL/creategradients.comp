@@ -1,8 +1,8 @@
 
 #version 430
 
-layout(rgba32f, binding = 0) uniform readonly image2D displacement;
-layout(rgba16f, binding = 1) uniform writeonly image2D gradients;
+layout (rgba32f, binding = 0) uniform readonly image2D displacement;
+layout (rgba16f, binding = 1) uniform writeonly image2D gradients;
 
 layout (local_size_x = 16, local_size_y = 16) in;
 void main()

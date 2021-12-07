@@ -1,0 +1,161 @@
+
+#version 440
+
+struct Particle
+{
+	vec4 Position;
+	vec4 Velocity;
+	vec4 Color;
+};
+
+layout (std430, binding = 0) buffer ParticleBuffer {
+	Particle data[];
+} particles;
+
+subroutine void BitonicSortFunc(uint, uint);
+
+uniform vec3 eyePos;
+uniform vec3 viewDir;
+
+uniform int numValues;
+uniform int outerIndex;
+uniform int innerIndex;
+uniform int ascending;
+
+// NOTE: consists of multiple parts
+subroutine uniform BitonicSortFunc sortFunc;
+
+float Distance(Particle p)
+{
+	// skip invalid elements
+	if (p.Position.w < 0.5)
+		return -3.402823466e+38;
+
+	vec3 pdir = p.Position.xyz - eyePos;
+	return dot(pdir, viewDir);
+}
+
+// --- Bitonic sorter ---------------------------------------------------------
+
+shared Particle shared_particles[THREADGROUP_SIZE];
+
+// NOTE: sorts at most THREADGROUP_SIZE elements (or THREADGROUP_SIZE steps of the sort)
+layout (index = 0) subroutine(BitonicSortFunc) void BitonicSortFull(uint localID, uint globalID)
+{
+	Particle p1, p2;
+	Particle nullparticle;
+	float d1, d2;
+
+	nullparticle.Position = vec4(0.0);
+
+	// read to threadgroup memory
+	shared_particles[localID] = particles.data[globalID];
+
+	if (globalID >= numValues)
+		shared_particles[localID] = nullparticle;
+		
+	barrier();
+
+	// parallel compare/exchange
+	int l = int(localID);
+	int g = int(globalID);
+
+	for (int s = 1; s <= LOG2_THREADGROUP_SIZE; ++s) {
+		for (int t = s - 1; t >= 0; --t) {
+			int lxt = l ^ (1 << t);
+			bool dir = (int((g & (1 << s)) == 0) != ascending);
+
+			// enforce comparison width
+			if (lxt > l) {
+				p1 = shared_particles[l];
+				p2 = shared_particles[lxt];
+
+				d1 = Distance(p1);
+				d2 = Distance(p2);
+
+				if ((d1 < d2) == dir) {
+					shared_particles[l] = p2;
+					shared_particles[lxt] = p1;
+				}
+			}
+
+			memoryBarrierShared();
+			barrier();
+		}
+	}
+
+	// write back
+	particles.data[globalID] = shared_particles[localID];
+}
+
+// NOTE: does compare/exchange operations when k > THREADGROUP_SIZE
+layout (index = 1) subroutine(BitonicSortFunc) void BitonicSortProgressive(uint localID, uint globalID)
+{
+	Particle p1, p2;
+	float d1, d2;
+
+	int l = int(globalID);
+	int lxt = l ^ (1 << innerIndex);
+	bool dir = (int((l & (1 << outerIndex)) == 0) != ascending);
+
+	// enforce comparison width
+	if (lxt > l) {
+		p1 = particles.data[l];
+		p2 = particles.data[lxt];
+
+		d1 = Distance(p1);
+		d2 = Distance(p2);
+
+		if ((d1 < d2) == dir) {
+			particles.data[l] = p2;
+			particles.data[lxt] = p1;
+		}
+	}
+}
+
+// NOTE: does all compare/exchange operations when k == THREADGROUP_SIZE
+layout (index = 2) subroutine(BitonicSortFunc) void BitonicSortOuterLoop(uint localID, uint globalID)
+{
+	Particle p1, p2;
+	float d1, d2;
+
+	// read to threadgroup memory
+	shared_particles[localID] = particles.data[globalID];
+	
+	barrier();
+
+	// parallel compare/exchange
+	int l = int(localID);
+	int g = int(globalID);
+
+	for (int t = LOG2_THREADGROUP_SIZE - 1; t >= 0; --t) {
+		int lxt = l ^ (1 << t);
+		bool dir = (int((g & (1 << outerIndex)) == 0) != ascending);
+
+		// enforce comparison width
+		if (lxt > l) {
+			p1 = shared_particles[l];
+			p2 = shared_particles[lxt];
+
+			d1 = Distance(p1);
+			d2 = Distance(p2);
+
+			if ((d1 < d2) == dir) {
+				shared_particles[l] = p2;
+				shared_particles[lxt] = p1;
+			}
+		}
+
+		memoryBarrierShared();
+		barrier();
+	}
+
+	// write back
+	particles.data[globalID] = shared_particles[localID];
+}
+
+layout (local_size_x = THREADGROUP_SIZE) in;
+void main()
+{
+	sortFunc(gl_LocalInvocationID.x, gl_GlobalInvocationID.x);
+}

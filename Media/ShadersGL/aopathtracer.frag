@@ -1,8 +1,8 @@
 
 #version 430
 
-#include "raytrace_common.head"
 #include "pbr_common.head"
+#include "raytrace_common.head"
 
 struct SceneObject
 {
@@ -73,13 +73,14 @@ int FindIntersection(out vec3 pos, out vec3 norm, vec3 raystart, vec3 raydir)
 	return index;
 }
 
-vec3 TraceScene(vec3 raystart, vec3 raydir, vec3 pixel)
+vec3 TraceScene(vec3 raystart, vec3 raydir)
 {
 	vec3	inray;
 	vec3	outray;
 	vec3	n, p, q;
 	vec3	otherp;
 	vec3	indirect = vec3(1.0);
+	vec2	xi = Random2();
 	int		index;
 
 	p = raystart;
@@ -88,7 +89,7 @@ vec3 TraceScene(vec3 raystart, vec3 raydir, vec3 pixel)
 	index = FindIntersection(p, n, p, raydir);
 
 	if (index < numObjects) {
-		inray = CosineSample(n, pixel, time);
+		inray = CosineSampleHemisphere(n, xi);
 		index = FindIntersection(q, n, p, inray);
 
 		if (index < numObjects)
@@ -102,10 +103,14 @@ vec3 TraceScene(vec3 raystart, vec3 raydir, vec3 pixel)
 
 void main()
 {
+	vec2 res	= vec2(textureSize(prevIteration, 0));
 	vec3 spos	= gl_FragCoord.xyz;
 	vec4 ndc	= vec4(tex * 2.0 - vec2(1.0), 0.1, 1.0);
 	vec4 wpos	= matViewProjInv * ndc;
 	vec3 raydir;
+
+	// initialize RNG
+	randomSeed = time + res.y * spos.x / res.x + spos.y / res.y;
 
 	wpos /= wpos.w;
 	raydir = normalize(wpos.xyz - eyePos);
@@ -127,7 +132,7 @@ void main()
 	}
 #else
 	vec3 prev = texelFetch(prevIteration, ivec2(spos.xy), 0).rgb;
-	vec3 curr = TraceScene(eyePos, raydir, spos);
+	vec3 curr = TraceScene(eyePos, raydir);
 	float d = 1.0 / currSample;
 
 	my_FragColor0.rgb = mix(prev, curr, d);

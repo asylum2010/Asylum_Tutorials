@@ -1,0 +1,595 @@
+
+#version 450
+
+#include "raytrace_structs.head"
+#include "pbr_common.head"
+#include "raytrace_common.head"
+
+layout (std430, binding = 0) readonly buffer VertexBuffer {
+	PackedVertex data[];
+} vertices;
+
+layout (std430, binding = 1) readonly buffer IndexBuffer {
+	uint data[];
+} indices;
+
+layout (std430, binding = 2) readonly buffer BVHierarchy {
+	BVHNode data[];
+} hierarchy;
+
+layout (std430, binding = 3) readonly buffer TriangleIDs {
+	uvec2 data[];
+} triangleIDs;
+
+layout (std430, binding = 4) readonly buffer AreaLights {
+	AreaLight data[];
+} lights;
+
+layout (std430, binding = 5) readonly buffer Materials {
+	BSDFInfo data[];
+} materials;
+
+layout (binding = 9) uniform sampler2DArray albedoTextures;
+
+#include "bsdf_common.head"
+#include "accelstructure.head"
+#include "pathvertex.head"
+
+#define MODEL_EPSILON	1e-3	// 1 mm
+#define MAX_DEPTH		4
+#define MAX_SAMPLES		64
+
+#define MODE_RADIANCE	0		// when tracing from camera
+#define MODE_IMPORTANCE	1		// when tracing from light
+
+uniform mat4 matViewProj;
+uniform mat4 matViewProjInv;
+uniform vec3 eyePos;
+uniform vec3 camForward;
+uniform vec2 texelSize;
+
+uniform float time;
+uniform float camArea;
+
+layout (rgba32f, binding = 6) uniform restrict image2D accumTarget;
+layout (rg32f, binding = 7) uniform restrict image2D counterTarget;
+layout (rgba32f, binding = 8) uniform restrict writeonly image2D renderTarget;
+
+// NOTE: placed in SVU temp registers (GCN has 4096 per SVU)
+PathVertex camerapath[MAX_DEPTH];
+PathVertex lightpath[MAX_DEPTH];
+BSDFInfo genericlightBSDF;
+vec3 primaryray;
+
+// --- Bidirectional path tracer ----------------------------------------------
+
+void SampleAreaLight(out Ray ray, AreaLight light, vec3 p, vec2 xi)
+{
+	if (light.ShapeType == SHAPE_PLATE) {
+		vec3 t = light.ToWorld[0].xyz;
+		vec3 b = light.ToWorld[2].xyz;
+		vec3 o = light.ToWorld[3].xyz;
+
+		SampleRayFromRect(ray, p, o, t, b, xi);
+	}
+}
+
+void SampleRayFromAreaLight(out Ray ray, AreaLight light, vec2 xi1, vec2 xi2)
+{
+	if (light.ShapeType == SHAPE_PLATE) {
+		vec3 t = light.ToWorld[0].xyz;
+		vec3 b = light.ToWorld[2].xyz;
+		vec3 o = light.ToWorld[3].xyz;
+
+		SampleRayFromRect(ray, o, t, b, xi1, xi2);
+	}
+}
+
+vec2 PDF_AreaLight(AreaLight light, vec3 lp, vec3 vp, vec3 vn)
+{
+	// NOTE: assumes that vp and vn are from a surface interaction
+
+	vec2 ret = vec2(0.0);
+	vec3 d = vp - lp;
+	float dist2 = dot(d, d);
+
+	d = normalize(d);
+
+	if (light.ShapeType == SHAPE_PLATE) {
+		vec3 t = light.ToWorld[0].xyz;
+		vec3 b = light.ToWorld[2].xyz;
+		
+		ret = PDF_RayFromRect(d, t, b);
+	}
+
+	ret.x /= float(NUM_LIGHTS);
+
+	ret.y /= dist2;
+	ret.y *= dot(vn, d);	// ezzel mintaveteleztel, akkor ezt hasznald
+	//ret.y *= abs(dot(vn, d));	// ?
+
+	return ret;
+}
+
+int RandomWalk(inout PathVertex path[MAX_DEPTH], vec4 wi_pdf, vec3 beta, int maxdepth, int mode)
+{
+	BSDFInfo	info;
+	vec3		value;
+	vec2		xi;
+	float		forwardPDF	= wi_pdf.w;
+	float		reversePDF	= 0.0;
+	int			bounces		= 0;
+	bool		refracted	= false;
+
+	while (true) {
+		path[bounces + 1].Interaction.NodeID = path[bounces].Interaction.NodeID;
+		int index = FindIntersection(path[bounces + 1].Interaction, path[bounces].Interaction.Position, wi_pdf.xyz);
+
+		path[bounces + 1].Beta = beta;
+		path[bounces + 1].ReversePDF = 0.0;
+		path[bounces + 1].IsDelta = false;
+
+		if (index < 0) {
+			// ray escaped, use the dummy light
+			if (mode == MODE_RADIANCE) {
+				path[bounces + 1].Interaction.NodeID = -1;
+				path[bounces + 1].Interaction.MaterialID = NUM_LIGHTS;
+				path[bounces + 1].ForwardPDF = forwardPDF;
+
+				++bounces;
+			}
+
+			break;
+		}
+
+		const Intersection isect = path[bounces + 1].Interaction;
+
+		if (isect.NodeID == -1) {
+			// hit light, just bounce off
+			path[bounces + 1].Interaction.MaterialID = index;
+			info = genericlightBSDF;
+		} else {
+			// surface interaction
+			info = materials.data[isect.MaterialID];
+		}
+
+		// add some bias
+		path[bounces + 1].Interaction.Position -= MODEL_EPSILON * wi_pdf.xyz;
+
+		path[bounces + 1].OutDir = -wi_pdf.xyz;
+		path[bounces + 1].ForwardPDF = ConvertDensity(forwardPDF, path[bounces], path[bounces + 1]);
+
+		// NOTE: be careful from here
+		++bounces;
+		
+		if (bounces >= maxdepth)
+			break;
+
+		xi = Random2();
+
+		// sample new direction
+		refracted = SampleEvaluateBSDFImportance(wi_pdf, value, info, path[bounces].OutDir, isect.Normal, isect.TexCoord, xi);
+		
+		if (wi_pdf.w < EPSILON || IsBlack(value))
+			break;
+		
+		// flip the bias if the ray refracted
+		if (refracted)
+			path[bounces].Interaction.Position -= 2.0 * MODEL_EPSILON * path[bounces].OutDir;
+
+		// NOTE: evaluated wrt. importance sampling
+		beta *= value;
+
+		forwardPDF = wi_pdf.w;
+		reversePDF = PDF_BSDF(info, path[bounces].OutDir, wi_pdf.xyz, isect.Normal);
+
+		const bool diracdelta = ((info.params.y & BSDF_SPECULAR) == BSDF_SPECULAR);
+		const bool nullinteraction = ((info.params.y & BSDF_TRANSPARENT) == BSDF_TRANSPARENT);
+
+		if (diracdelta || nullinteraction) {
+			path[bounces].IsDelta = true;
+
+			// itt biztos van valami gond, ha transparent
+			forwardPDF = 0.0;
+			reversePDF = 0.0;
+		}
+		
+		// TODO:
+		//beta *= CorrectShadingNormal(isect, wo, wi, mode);
+
+		// NOTE: must be extremely careful here: want to update the original preceding vertex
+
+		// az lehet a baj, hogy te ezt importance sampleztad; akkor a reverse pdf is ahhoz kene igazdojon nem? (as in nem kell ndotl stb.)
+		// ezt nagyon at kell gondolni, sok BSDF nem is szimmetrikus!
+		path[bounces - 1].ReversePDF = ConvertDensity(reversePDF, path[bounces], path[bounces - 1]);
+	}
+
+	return bounces;
+}
+
+int GenerateCameraSubpath()
+{
+	Ray camray;
+	vec3 beta = vec3(1.0);
+	float pdfdir = PDF_ImportanceCamera(eyePos, primaryray, camForward, camArea);
+
+	camerapath[0].Interaction.Position = eyePos;
+	camerapath[0].Interaction.NodeID = -1;
+
+	camerapath[0].Beta = beta;
+	camerapath[0].ForwardPDF = 0.0;
+	camerapath[0].ReversePDF = 0.0;
+	camerapath[0].IsDelta = false;
+
+	camray.PositionAndPDF = vec4(eyePos, 1.0);
+	camray.DirectionAndPDF = vec4(primaryray, pdfdir);
+	camray.Normal = vec3(0.0);
+
+	return RandomWalk(camerapath, camray.DirectionAndPDF, beta, MAX_DEPTH - 1, MODE_RADIANCE) + 1;
+}
+
+int GenerateLightSubpath()
+{
+	vec2 xi1 = Random2(), xi2;
+
+	int lightID = min(NUM_LIGHTS - 1, int(xi1.x * float(NUM_LIGHTS)));
+	AreaLight light = lights.data[lightID];
+	Ray lightray;
+
+	xi1 = Random2();
+	xi2 = Random2();
+	
+	SampleRayFromAreaLight(lightray, light, xi1, xi2);
+
+	if (lightray.DirectionAndPDF.w < EPSILON || lightray.PositionAndPDF.w < EPSILON) {
+		return 0;
+	}
+
+	float pdfpos = lightray.PositionAndPDF.w;
+	float pdfdir = lightray.DirectionAndPDF.w;
+	float ndotl = abs(dot(lightray.Normal, lightray.DirectionAndPDF.xyz));
+	vec3 beta = (light.Luminance * ndotl * NUM_LIGHTS) / (pdfpos * pdfdir);
+
+	lightpath[0].Interaction.Position = lightray.PositionAndPDF.xyz;
+	lightpath[0].Interaction.NodeID = -1;
+	
+	lightpath[0].Beta = beta;
+	lightpath[0].ForwardPDF = pdfpos / float(NUM_LIGHTS);
+	lightpath[0].ReversePDF = 0.0;
+	lightpath[0].IsDelta = false;
+
+	// TODO: ignore selected light
+	return RandomWalk(lightpath, lightray.DirectionAndPDF, beta, MAX_DEPTH - 2, MODE_IMPORTANCE) + 1;
+}
+
+float MISRemap(float x)
+{
+	return ((x < EPSILON) ? 1.0 : x);
+}
+
+float MISWeight(int s, int t, PathVertex sampled)
+{
+	// TODO: can pass light as well
+
+	float ptrevPDF;	
+	float qsrevPDF;
+	float ptminusrevPDF;
+	float qsminusrevPDF;
+	float ri = 1.0;
+	float sum = 1.0;
+	bool ptwasdelta;
+	bool qswasdelta;
+
+	if (s + t == 2)
+		return 1.0;
+
+	// NOTE: t is always at least 2
+	if (s == 0) {
+		// implicit path
+		const Intersection	isectpt			= camerapath[t - 1].Interaction;
+		const Intersection	isectptminus	= camerapath[t - 2].Interaction;
+		uint				lightID			= isectpt.MaterialID;
+		AreaLight			light			= lights.data[lightID];
+		vec2				lightpdfs		= PDF_AreaLight(light, isectpt.Position, isectptminus.Position, isectptminus.Normal);
+		
+		ptrevPDF = camerapath[t - 1].ReversePDF;
+		camerapath[t - 1].ReversePDF = lightpdfs.x;
+
+		ptminusrevPDF = camerapath[t - 2].ReversePDF;
+		camerapath[t - 2].ReversePDF = lightpdfs.y;
+
+		// hypothetical connections along camera subpath
+		for (int i = t - 1; i > 0; --i) {
+			// valamelyik lenullazza az ri-t es igy nem tud novelodni a suly
+			ri *= MISRemap(camerapath[i].ReversePDF) / MISRemap(camerapath[i].ForwardPDF);
+
+			if (!camerapath[i].IsDelta && !camerapath[i - 1].IsDelta)
+				sum += ri;
+		}
+
+		// restore
+		camerapath[t - 1].ReversePDF = ptrevPDF;
+		camerapath[t - 2].ReversePDF = ptminusrevPDF;
+	} else if (s == 1) {
+		// 'sampled' is a light vertex, want (reverse) PDF from qs to pt
+		Intersection	isectqs			= sampled.Interaction;
+		Intersection	isectpt			= camerapath[t - 1].Interaction;
+		Intersection	isectptminus	= camerapath[t - 2].Interaction;
+		uint			lightID			= isectqs.MaterialID;
+		AreaLight		light			= lights.data[lightID];
+		vec2			lightpdfs		= PDF_AreaLight(light, isectqs.Position, isectpt.Position, isectpt.Normal);
+
+		ptwasdelta = camerapath[t - 1].IsDelta;
+		ptrevPDF = camerapath[t - 1].ReversePDF;
+
+		camerapath[t - 1].IsDelta = false;
+		camerapath[t - 1].ReversePDF = lightpdfs.y;
+
+		ptminusrevPDF = camerapath[t - 2].ReversePDF;
+		camerapath[t - 2].ReversePDF = PDF_Vertex(camerapath[t - 1], sampled, camerapath[t - 2]);
+
+		sampled.ReversePDF = PDF_Vertex(camerapath[t - 1], camerapath[t - 2], sampled);
+
+		// hypothetical connections along camera subpath
+		for (int i = t - 1; i > 0; --i) {
+			ri *= MISRemap(camerapath[i].ReversePDF) / MISRemap(camerapath[i].ForwardPDF);
+
+			if (!camerapath[i].IsDelta && !camerapath[i - 1].IsDelta)
+				sum += ri;
+		}
+
+		// hypothetical connections along light subpath (only one here)
+		ri = 1.0;
+		ri *= MISRemap(sampled.ReversePDF) / MISRemap(sampled.ForwardPDF);
+
+		sum += ri;
+
+		// restore
+		camerapath[t - 1].IsDelta = ptwasdelta;
+		camerapath[t - 1].ReversePDF = ptrevPDF;
+		camerapath[t - 2].ReversePDF = ptminusrevPDF;
+	} else {
+		// general case
+		qswasdelta = lightpath[s - 1].IsDelta;
+		ptwasdelta = camerapath[t - 1].IsDelta;
+
+		qsrevPDF = lightpath[s - 1].ReversePDF;
+		ptrevPDF = camerapath[t - 1].ReversePDF;
+
+		qsminusrevPDF = lightpath[s - 2].ReversePDF;
+		ptminusrevPDF = camerapath[t - 2].ReversePDF;
+
+		// update reverse densities for connection vertices
+		camerapath[t - 1].ReversePDF = PDF_Vertex(lightpath[s - 1], lightpath[s - 2], camerapath[t - 1]);
+		camerapath[t - 2].ReversePDF = PDF_Vertex(camerapath[t - 1], lightpath[s - 1], camerapath[t - 2]);
+
+		lightpath[s - 1].ReversePDF = PDF_Vertex(camerapath[t - 1], camerapath[t - 2], lightpath[s - 1]);
+		lightpath[s - 2].ReversePDF = PDF_Vertex(lightpath[s - 1], camerapath[t - 1], lightpath[s - 2]);
+
+		// hypothetical connections along camera subpath
+		for (int i = t - 1; i > 0; --i) {
+			ri *= MISRemap(camerapath[i].ReversePDF) / MISRemap(camerapath[i].ForwardPDF);
+
+			if (!camerapath[i].IsDelta && !camerapath[i - 1].IsDelta)
+				sum += ri;
+		}
+
+		// hypothetical connections along light subpath
+		ri = 1.0;
+
+		for (int i = s - 1; i >= 0; --i) {
+			ri *= MISRemap(lightpath[i].ReversePDF) / MISRemap(lightpath[i].ForwardPDF);
+
+			bool isdeltavertex = ((i > 0) ? lightpath[i - 1].IsDelta : false);
+
+			if (!lightpath[i].IsDelta && !isdeltavertex)
+				sum += ri;
+		}
+
+		// restore
+		lightpath[s - 1].IsDelta = qswasdelta;
+		camerapath[t - 1].IsDelta = ptwasdelta;
+
+		lightpath[s - 1].ReversePDF = qsrevPDF;
+		camerapath[t - 1].ReversePDF = ptrevPDF;
+
+		lightpath[s - 2].ReversePDF = qsminusrevPDF;
+		camerapath[t - 2].ReversePDF = ptminusrevPDF;
+	}
+
+	return (1.0 / sum);
+}
+
+vec3 ConnectBDPT(int s, int t)
+{
+	PathVertex	sampled;
+	vec3		value1, value2;
+	vec3		connection;
+	vec3		L = vec3(0.0);
+	bvec4		degenerate = bvec4(false);
+	int			remaining = MAX_DEPTH - s - t + 1;
+
+	if (s == 0) {
+		// treat as implicit path
+		const PathVertex pt = camerapath[t - 1];
+
+		if (pt.Interaction.NodeID == -1) {
+			AreaLight light = lights.data[pt.Interaction.MaterialID];
+			L = light.Luminance * pt.Beta;
+		}
+	} else if (s == 1) {
+		// sample a point on a random light, and connect to it
+		PathVertex		pt			= camerapath[t - 1];
+		BSDFInfo		info		= materials.data[pt.Interaction.MaterialID];
+		vec2			xi			= Random2();
+		int				lightID		= min(NUM_LIGHTS - 1, int(xi.x * float(NUM_LIGHTS)));
+		AreaLight		light		= lights.data[lightID];
+		Ray				raytolight;
+		vec4			weight_pdf	= vec4(0.0);
+
+		degenerate.x = ((info.params.y & BSDF_SPECULAR) == BSDF_SPECULAR);
+		degenerate.y = (pt.Interaction.NodeID == -1);
+
+		if (any(degenerate)) {
+			// can't connect
+			return L;
+		}
+
+		xi = Random2();
+
+		// importance sample light (xyz = direction, w = PDF)
+		SampleAreaLight(raytolight, light, pt.Interaction.Position, xi);
+
+		if (raytolight.DirectionAndPDF.w < EPSILON)
+			return L;
+
+		sampled.Interaction.Position = raytolight.PositionAndPDF.xyz;
+		sampled.Interaction.Normal = raytolight.Normal;
+		sampled.Interaction.NodeID = -1;
+		sampled.Interaction.MaterialID = lightID;
+
+		//float ndotl = dot(raytolight.DirectionAndPDF.xyz, pt.Interaction.Normal);
+		float ndotl = abs(dot(raytolight.DirectionAndPDF.xyz, pt.Interaction.Normal));	// TWOSIDED
+		
+		//if (ndotl > 0.0)
+			weight_pdf = FindConnection(pt.Interaction, sampled.Interaction, lightID, remaining);
+
+		vec3 G = weight_pdf.xyz * weight_pdf.w * ndotl;
+
+		sampled.Beta = NUM_LIGHTS * (light.Luminance / raytolight.DirectionAndPDF.w);
+		sampled.ForwardPDF = raytolight.PositionAndPDF.w / float(NUM_LIGHTS);
+		sampled.ReversePDF = 0.0;
+
+		value1 = BSDF_Vertex(info, raytolight.DirectionAndPDF.xyz, pt.OutDir, pt);
+		L = pt.Beta * value1 * sampled.Beta * G;
+	} else {
+		// general case
+		PathVertex	pt		= camerapath[t - 1];
+		PathVertex	qs		= lightpath[s - 1];
+		BSDFInfo	bsdft	= materials.data[pt.Interaction.MaterialID];
+		BSDFInfo	bsdfs	= materials.data[qs.Interaction.MaterialID];
+		vec3		G		= GeometryTerm(connection, pt, qs, remaining);
+
+		degenerate.x = pt.IsDelta;
+		degenerate.y = qs.IsDelta;
+		degenerate.z = (pt.Interaction.NodeID == -1);
+		degenerate.w = (qs.Interaction.NodeID == -1);
+
+		if (any(degenerate)) {
+			// can't connect
+			return L;
+		}
+
+		value1 = BSDF_Vertex(bsdft, connection, pt.OutDir, pt);
+		value2 = BSDF_Vertex(bsdfs, qs.OutDir, -connection, qs);
+
+		L = qs.Beta * value2 * value1 * pt.Beta * G;
+	}
+
+	float weight = 0.0;
+	
+	if (!IsBlack(L))
+		weight = MISWeight(s, t, sampled);
+
+	//return L * weight;
+	return L;
+	//return vec3(weight);
+}
+
+bool DEBUG_Validate(float value)
+{
+	return !isinf(value) && !isnan(value) && (value >= 0.0);
+}
+
+vec3 TraceScene()
+{
+	vec3 outray = primaryray;
+	vec3 color = vec3(0.0);
+	vec2 xi1, xi2;
+	int index;
+
+	// camera subpath
+	int numcamvertices = GenerateCameraSubpath();
+
+	if (numcamvertices < 2)
+		return vec3(0.0);
+
+	// light subpath
+	int numlightvertices = GenerateLightSubpath();
+
+	if (numlightvertices < 1)
+		return vec3(0.0);
+
+	// connect
+#if TEST_EXPLICITLY
+	int test_s = 2;
+	int test_t = 2;
+
+	if (numlightvertices >= test_s && numcamvertices >= test_t)
+		color += ConnectBDPT(test_s, test_t);
+#else
+	// try to combine in all possible ways
+	//for (int s = 0; s <= min(1, numlightvertices); ++s) {
+	for (int s = 0; s <= numlightvertices; ++s) {
+		int maxt = min(numcamvertices, MAX_DEPTH + 1 - s);
+
+		for (int t = 2; t <= maxt; ++t) {
+			color += ConnectBDPT(s, t);
+		}
+	}
+#endif
+
+	// TODO: rendereld ki ujra mindent linear-ra allitva, mert igy nem jo
+	// TODO: MIS folytatas
+	// TODO: kiirni h hany poligon/node a jelenet
+	// TODO: ami befer a shared membe az legyen ott
+	// TODO: ketoldalu fuggony
+	// TODO: counter mehet az alfa csatornaba
+	// TODO: multisampling? (ez a rfilter/stratification)
+
+	// TODO: valami interpolacios modszer h ne kelljen ennyit szamolni
+	// TODO: a shading normal nem szimmetrikus! radiance transportnal kell korrigalni (tehat a kamerabol)
+	// TODO: Russian roulette-el meg tudod segiteni a sok bounce-ot
+	// TODO: lehet csokkenteni a regiszterek szamat const-tal
+
+	return color;
+}
+
+layout (local_size_x = 16, local_size_y = 16) in;
+void main()
+{
+	ivec2 loc	= ivec2(gl_GlobalInvocationID.xy);
+	vec3 res	= vec3(gl_NumWorkGroups * gl_WorkGroupSize);
+	vec2 coord	= vec2(gl_GlobalInvocationID.xy);
+	vec2 spos	= coord * texelSize;
+	vec4 ndc	= vec4(spos * 2.0 - vec2(1.0), 0.1, 1.0);
+	vec4 wpos	= matViewProjInv * ndc;
+
+	// initialize RNG
+	randomSeed = time + res.y * coord.x / res.x + coord.y / res.y;
+
+	wpos /= wpos.w;
+	primaryray = normalize(wpos.xyz - eyePos);
+
+	genericlightBSDF.color = vec4(0.5, 0.5, 0.5, 1.0);
+	genericlightBSDF.params = uvec4(-1, BSDF_DIFFUSE, 0, 0);
+
+	vec4 currcolor = vec4(0.0);
+	vec4 prevcolor = imageLoad(accumTarget, loc);
+	vec4 counter = imageLoad(counterTarget, loc);
+
+	if (counter.x < MAX_SAMPLES) //
+		currcolor.rgb = TraceScene();
+
+	counter.x = min(counter.x + 1, MAX_SAMPLES);
+
+	imageStore(accumTarget, loc, prevcolor + currcolor);
+	imageStore(counterTarget, loc, counter);
+
+	vec4 finalcolor = prevcolor + currcolor;
+
+	finalcolor /= counter.x;
+	finalcolor.w = 1.0;
+
+	imageStore(renderTarget, loc, finalcolor);
+}

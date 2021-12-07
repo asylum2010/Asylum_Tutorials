@@ -47,6 +47,21 @@ Vector2::Vector2(const float* values)
 	y = values[1];
 }
 
+Vector2 Vector2::operator +(const Vector2& v) const
+{
+	return Vector2(x + v.x, y + v.y);
+}
+
+Vector2 Vector2::operator -(const Vector2& v) const
+{
+	return Vector2(x - v.x, y - v.y);
+}
+
+Vector2 Vector2::operator *(float s) const
+{
+	return Vector2(x * s, y * s);
+}
+
 Vector2& Vector2::operator =(const Vector2& other)
 {
 	x = other.x;
@@ -79,6 +94,11 @@ Vector3::Vector3(const float* values)
 	x = values[0];
 	y = values[1];
 	z = values[2];
+}
+
+Vector3 Vector3::operator *(const Vector3& v) const
+{
+	return Vector3(x * v.x, y * v.y, z * v.z);
 }
 
 Vector3 Vector3::operator +(const Vector3& v) const
@@ -402,6 +422,11 @@ Color::Color(uint32_t argb32)
 	r = ArgbR32(argb32) / 255.0f;
 	g = ArgbG32(argb32) / 255.0f;
 	b = ArgbB32(argb32) / 255.0f;
+}
+
+Color Color::operator *(float f)
+{
+	return Color(r * f, g * f, b * f, a);
 }
 
 Color& Color::operator =(const Color& other)
@@ -820,6 +845,11 @@ float Vec2Length(const Vector2& v)
 	return sqrtf(v.x * v.x + v.y * v.y);
 }
 
+float Vec2Distance(const Vector2& a, const Vector2& b)
+{
+	return Vec2Length(a - b);
+}
+
 void Vec2Normalize(Vector2& out, const Vector2& v)
 {
 	float il = 1.0f / sqrtf(v.x * v.x + v.y * v.y);
@@ -1078,6 +1108,17 @@ void PlaneFromNormalAndPoint(Vector4& out, const Vector3& n, const Vector3& p)
 	out.y = n.y;
 	out.z = n.z;
 	out.w = -Vec3Dot(p, n);
+}
+
+void PlaneFromTriangle(Vector4& out, const Vector3& a, const Vector3& b, const Vector3& c)
+{
+	Vector3 bma = b - a;
+	Vector3 cma = c - a;
+
+	Vec3Cross((Math::Vector3&)out, bma, cma);
+	out.w = -Math::Vec3Dot((Math::Vector3&)out, a);
+
+	PlaneNormalize(out, out);
 }
 
 void PlaneNormalize(Vector4& out, const Vector4& p)
@@ -1364,6 +1405,34 @@ void MatrixPerspectiveFovRH(Matrix& out, float fovy, float aspect, float nearpla
 #endif
 }
 
+void MatrixOrthoOffCenterLH(Matrix& out, float left, float right, float bottom, float top, float nearplane, float farplane)
+{
+	out._11 = 2.0f / (right - left);
+	out._12 = out._13 = out._14 = 0;
+	
+	out._22 = 2.0f / (top - bottom);
+	out._21 = out._23 = out._24 = 0;
+
+#ifdef OPENGL
+	// [-1, 1]
+	out._33 = 2.0f / (farplane - nearplane);
+	out._43 = -(farplane + nearplane) / (farplane - nearplane);
+
+	out._41 = -(right + left) / (right - left);
+	out._42 = -(top + bottom) / (top - bottom);
+#else
+	// [0, 1]
+	out._33 = 1.0f / (farplane - nearplane);
+	out._43 = -nearplane * out._33;
+
+	out._41 = (right + left) / (left - right);
+	out._42 = (top + bottom) / (bottom - top);
+#endif
+
+	out._31 = out._32 = out._34 = 0;
+	out._44 = 1;
+}
+
 void MatrixOrthoOffCenterRH(Matrix& out, float left, float right, float bottom, float top, float nearplane, float farplane)
 {
 	out._11 = 2.0f / (right - left);
@@ -1372,20 +1441,20 @@ void MatrixOrthoOffCenterRH(Matrix& out, float left, float right, float bottom, 
 	out._22 = 2.0f / (top - bottom);
 	out._21 = out._23 = out._24 = 0;
 
-#if defined(VULKAN) || defined(METAL) || defined(DIRECT3D9) || defined(DIRECT3D10)
-	// [0, 1]
-	out._33 = 1.0f / (nearplane - farplane);
-	out._43 = nearplane * out._33;
-
-	out._41 = (right + left) / (right - left);
-	out._42 = (top + bottom) / (bottom - top);
-#else
+#ifdef OPENGL
 	// [-1, 1]
 	out._33 = -2.0f / (farplane - nearplane);
 	out._43 = -(farplane + nearplane) / (farplane - nearplane);
 
 	out._41 = -(right + left) / (right - left);
 	out._42 = -(top + bottom) / (top - bottom);
+#else
+	// [0, 1]
+	out._33 = 1.0f / (nearplane - farplane);
+	out._43 = nearplane * out._33;
+
+	out._41 = (right + left) / (left - right);
+	out._42 = (top + bottom) / (bottom - top);
 #endif
 
 	out._31 = out._32 = out._34 = 0;
@@ -1637,9 +1706,38 @@ int FrustumIntersect(const Math::Vector4 frustum[6], const AABox& box)
 
 // --- Utility functions impl -------------------------------------------------
 
+float F0FromEta(float eta)
+{
+	float etam1 = eta - 1.0f;
+	float etap1 = eta + 1.0f;
+
+	return (etam1 * etam1) / (etap1 * etap1);
+}
+
 float Gaussian(float x, float stddev)
 {
 	return (ONE_OVER_SQRT_TWO_PI / stddev) * expf(-((x * x) / (2.0f * stddev * stddev)));
+}
+
+float ImagePlaneArea(const Matrix& proj)
+{
+	Matrix projinv;
+	Vector4 c1(-1, -1, -1.0, 1.0);
+	Vector4 c2(1, 1, -1.0, 1.0);
+
+	MatrixInverse(projinv, proj);
+
+	Vec4Transform(c1, c1, projinv);
+	Vec4Transform(c2, c2, projinv);
+
+	c1 /= c1.w;
+	c2 /= c2.w;
+
+	// want the result at z = 1
+	c1 /= c1.z;
+	c2 /= c2.z;
+
+	return std::abs(c2.x - c1.x) * std::abs(c2.y - c1.y);
 }
 
 std::string& GetPath(std::string& out, const std::string& str)
@@ -1698,6 +1796,35 @@ std::string& ToLower(std::string& out, const std::string& str)
 	return out;
 }
 
+void SaveToTGA(const std::string& file, uint32_t width, uint32_t height, void* pixels)
+{
+	FILE* outfile = nullptr;
+
+#ifdef _WIN32
+	fopen_s(&outfile, file.c_str(), "wb");
+#else
+	outfile = fopen(file.c_str(), "wb");
+#endif
+	
+	if (!outfile)
+		return;
+
+	uint8_t header[18];
+	memset(header, 0, 18);
+
+	header[2] = 2;
+
+	*((uint16_t*)(&header[12])) = (uint16_t)width;
+	*((uint16_t*)(&header[14])) = (uint16_t)height;
+
+	header[16] = 4 * 8;
+		
+	fwrite(header, 1, 18, outfile);
+	fwrite(pixels, 1, width * height * 4, outfile);
+		
+	fclose(outfile);
+}
+
 }
 
 // --- Operators impl ---------------------------------------------------------
@@ -1720,4 +1847,9 @@ Math::Vector4 operator *(float f, const Math::Vector4& v)
 Math::Vector4 operator /(float f, const Math::Vector4& v)
 {
 	return Math::Vector4(f / v.x, f / v.y, f / v.z, f / v.w);
+}
+
+Math::Color operator *(float f, const Math::Color& color)
+{
+	return Math::Color(f * color.r, f * color.g, f * color.b, color.a);
 }

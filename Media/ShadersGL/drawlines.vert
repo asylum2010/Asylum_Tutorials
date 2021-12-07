@@ -1,8 +1,8 @@
 
 #version 430
 
-layout(location = 0) uniform mat4 matProj;
-layout(location = 1) uniform int numControlVertices;
+uniform mat4 matProj;
+uniform int numControlVertices;
 
 // NOTE: this is patch data!!! (0, 1, 1, 2, 2, 3, 3, ..., n)
 layout(std140, binding = 0) readonly buffer ControlVertexData {

@@ -4,8 +4,8 @@
 #define PI		3.1415926535897932
 #define TWO_PI	6.2831853071795864
 
-layout(rg32f, binding = 0) uniform readonly image2D readbuff;
-layout(rg32f, binding = 1) uniform writeonly image2D writebuff;
+layout (rg32f, binding = 0) uniform readonly image2D readbuff;
+layout (rg32f, binding = 1) uniform writeonly image2D writebuff;
 
 vec2 ComplexMul(vec2 z, vec2 w) {
 	return vec2(z.x * w.x - z.y * w.y, z.y * w.x + z.x * w.y);

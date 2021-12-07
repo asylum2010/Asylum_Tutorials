@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\ShaderTutors\73_BitonicSort\main.cpp" />
+    <ClCompile Include="..\..\ShaderTutors\Common\3Dmath.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\dds.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\gl4ext.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\glextensions.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\geometryutils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\bitonicsorter.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{06d84fa8-48b5-4937-8371-c46430a6917a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{a63f7398-2516-4280-8bc0-c917a855caf0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ShaderTutors\Common\3Dmath.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\dds.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\gl4ext.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\glextensions.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\geometryutils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\bitonicsorter.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Media\ShadersGL\bitonicsort.comp">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

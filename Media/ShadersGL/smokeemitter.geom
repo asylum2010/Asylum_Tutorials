@@ -12,9 +12,9 @@ layout(xfb_buffer = 0, xfb_stride = 48) out GS_OUTPUT {
 	layout(xfb_offset = 0) vec4 particlePos;
 	layout(xfb_offset = 16) vec4 particleVel;
 	layout(xfb_offset = 32) vec4 particleColor;
-} gl_out;
+} my_out;
 
-layout(rgba32f, location = 0, binding = 0) uniform sampler2D randomTex;
+layout(rgba32f, binding = 0) uniform sampler2D randomTex;
 layout(location = 1) uniform float time;
 layout(location = 2) uniform float emitRate;
 
@@ -45,11 +45,11 @@ void main()
 
 			vel = normalize(vel);
 
-			gl_out.particlePos.xyz	= vs_particlePos[0].xyz;
-			gl_out.particlePos.w	= 1.0;
-			gl_out.particleVel.xyz	= vel * 0.75;
-			gl_out.particleVel.w	= 0.0;
-			gl_out.particleColor	= vec4(1.0);
+			my_out.particlePos.xyz	= vs_particlePos[0].xyz;
+			my_out.particlePos.w	= 1.0;
+			my_out.particleVel.xyz	= vel * 0.75;
+			my_out.particleVel.w	= 0.0;
+			my_out.particleColor	= vec4(1.0);
 
 			EmitVertex();
 			seed += 4207.56;

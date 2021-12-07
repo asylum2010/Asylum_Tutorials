@@ -32,6 +32,11 @@
 		x = 0; }
 // END
 
+#if defined(__APPLE__)
+// NOTE: to get files from bundle
+std::string GetResource(const std::string& file);
+#endif
+
 // --- Enums ------------------------------------------------------------------
 
 enum OpenGLDeclType
@@ -208,7 +213,7 @@ inline OpenGLContentRegistry& OpenGLContentManager() {
 class OpenGLMesh
 {
 	friend bool GLCreateMesh(GLuint, GLuint, GLuint, OpenGLVertexElement*, OpenGLMesh**);
-	friend bool GLCreateMeshFromQM(const char*, OpenGLMesh**);
+	friend bool GLCreateMeshFromQM(const char*, OpenGLMesh**, uint32_t);
 
 	struct LockedData
 	{
@@ -338,6 +343,8 @@ public:
 	void Begin();
 	void CommitChanges();
 	void End();
+	void Introspect();
+
 	void SetMatrix(const char* name, const float* value);
 	void SetVector(const char* name, const float* value);
 	void SetVectorArray(const char* name, const float* values, GLsizei count);
@@ -449,11 +456,12 @@ public:
 bool GLCreateCubeTextureFromDDS(const char* file, bool srgb, GLuint* out);
 bool GLCreateCubeTextureFromFiles(const char* files[6], bool srgb, GLuint* out);
 bool GLCreateMesh(GLuint numvertices, GLuint numindices, GLuint options, OpenGLVertexElement* decl, OpenGLMesh** mesh);
-bool GLCreateMeshFromQM(const char* file, OpenGLMesh** mesh);
+bool GLCreateMeshFromQM(const char* file, OpenGLMesh** mesh, uint32_t options = 0);
 bool GLCreateNormalizationCubemap(GLuint* out);
 bool GLCreateTexture(GLsizei width, GLsizei height, GLint miplevels, OpenGLFormat format, GLuint* out, void* data = 0);
 bool GLCreateTextureFromDDS(const char* file, bool srgb, GLuint* out);
 bool GLCreateTextureFromFile(const char* file, bool srgb, GLuint* out, GLuint flags = 0);
+bool GLCreateTextureArrayFromFiles(const std::string* files, uint32_t numfiles, bool srgb, GLuint* out);
 bool GLCreateVolumeTextureFromFile(const char* file, bool srgb, GLuint* out);
 
 OpenGLMesh* GLCreateDebugBox();

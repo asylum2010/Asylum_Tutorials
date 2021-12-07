@@ -39,6 +39,10 @@ static NSPoint convertScreenToBase(NSWindow* window, NSPoint pt)
 		[self addTrackingArea:_trackingArea];
 		[self setTranslatesAutoresizingMaskIntoConstraints:YES];
 		
+		if (@available(macOS 10.15, *)) {
+			self.depthStencilAttachmentTextureUsage |= MTLTextureUsageShaderRead;
+		}
+		
 		_inputState.Button = 0;
 		_inputState.X = _inputState.Y = 0;
 		_inputState.dX = _inputState.dY = 0;

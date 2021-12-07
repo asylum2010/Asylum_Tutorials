@@ -109,7 +109,7 @@ float3 GGXSample(float2 xi, float roughness)
 	float costheta = sqrt((1 - xi.y) / (1 + (a2 - 1) * xi.y));
 	float sintheta = sqrt(1 - costheta * costheta);
 
-	// PDF = (D(h) * dot(n, h)) / (4 * dot(v, h))
+	// PDF = D(h) * dot(n, h)
 	return float3(sintheta * cos(phi), sintheta * sin(phi), costheta);
 }
 

@@ -19,6 +19,10 @@
 #define ARRAY_SIZE(x)		(sizeof(x) / sizeof(x[0]))
 #define V_RETURN(r, e, x)	{ if (!(x)) { std::cerr << "* Error: " << e << "!\n"; return r; }}
 
+#ifdef _DEBUG
+static _CrtMemState _memstate;
+#endif
+
 static Win32Application* _app = nullptr;
 
 static LRESULT WINAPI WndProc(HWND hWnd, unsigned int msg, WPARAM wParam, LPARAM lParam)
@@ -177,10 +181,32 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
 
 	return VK_FALSE;
 }
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsReportCallback(
+	VkDebugUtilsMessageSeverityFlagBitsEXT		messageSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT				messageTypes,
+	const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
+	void*										pUserData)
+{
+	if (pCallbackData != nullptr)
+		std::cerr << pCallbackData->pMessage << std::endl;
+
+	if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+		__debugbreak();
+		return VK_FALSE;
+	}
+
+	return VK_TRUE;
+}
 #endif
 
 Win32Application::Win32Application(uint32_t width, uint32_t height)
 {
+#ifdef _DEBUG
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF);
+	_CrtMemCheckpoint(&_memstate);
+#endif
+
 	_app	= this;
 
 	hinst	= GetModuleHandle(NULL);
@@ -199,6 +225,17 @@ Win32Application::Win32Application(uint32_t width, uint32_t height)
 #ifdef DIRECT3D10
 	device = nullptr;
 	swapchain = nullptr;
+#endif
+
+#ifdef DIRECT3D11
+	device = nullptr;
+	context = nullptr;
+	swapchain = nullptr;
+#endif
+
+#ifdef DIRECT2D
+	d2dfactory = nullptr;
+	d2drendertarget = nullptr;
 #endif
 
 #ifdef VULKAN
@@ -241,7 +278,7 @@ Win32Application::~Win32Application()
 	UnregisterClass("AsylumSampleClass", hinst);
 
 #ifdef _DEBUG
-	_CrtDumpMemoryLeaks();
+	_CrtMemDumpAllObjectsSince(&_memstate);
 	system("pause");
 #endif
 }
@@ -594,18 +631,104 @@ bool Win32Application::InitializeDirect3D10()
 	return false;
 }
 
+bool Win32Application::InitializeDirect3D11(bool srgb)
+{
+#ifdef DIRECT3D11
+	DXGI_SWAP_CHAIN_DESC	swapchaindesc;
+	DXGI_MODE_DESC			displaymode;
+	D3D11_VIEWPORT			viewport;
+	UINT					flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+	D3D_FEATURE_LEVEL		featurelevel = D3D_FEATURE_LEVEL_10_0;
+	HRESULT					hr = S_OK;
+
+	memset(&swapchaindesc, 0, sizeof(DXGI_SWAP_CHAIN_DESC));
+
+	displaymode.Format					= (srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM);
+	displaymode.Width					= clientwidth;
+	displaymode.Height					= clientheight;
+	displaymode.RefreshRate.Numerator	= 60;
+	displaymode.RefreshRate.Denominator	= 1;
+
+	swapchaindesc.BufferDesc			= displaymode;
+	
+	swapchaindesc.BufferUsage			= DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapchaindesc.OutputWindow			= hwnd;
+	swapchaindesc.SampleDesc.Count		= 1;
+	swapchaindesc.SampleDesc.Quality	= 0;
+	swapchaindesc.Windowed				= TRUE;
+
+#ifdef DIRECT2D
+	swapchaindesc.BufferCount			= 1;
+	swapchaindesc.SwapEffect			= DXGI_SWAP_EFFECT_DISCARD;
+#else
+	swapchaindesc.BufferCount			= 2;
+	swapchaindesc.SwapEffect			= DXGI_SWAP_EFFECT_SEQUENTIAL;
+#endif
+
+#if (_MSC_VER > 1600) && defined(_DEBUG)
+	flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+	D3D_FEATURE_LEVEL featurelevels[] = {
+		D3D_FEATURE_LEVEL_11_1,
+		D3D_FEATURE_LEVEL_11_0,
+		D3D_FEATURE_LEVEL_10_1,
+		D3D_FEATURE_LEVEL_10_0
+	};
+
+	hr = D3D11CreateDeviceAndSwapChain(
+		NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flags, featurelevels, ARRAY_SIZE(featurelevels),
+		D3D11_SDK_VERSION, &swapchaindesc, &swapchain, &device, &featurelevel, &context);
+
+	viewport.Width		= (FLOAT)clientwidth;
+	viewport.Height		= (FLOAT)clientheight;
+	viewport.MinDepth	= 0.0f;
+	viewport.MaxDepth	= 1.0f;
+	viewport.TopLeftX	= 0;
+	viewport.TopLeftY	= 0;
+
+	if (context)
+		context->RSSetViewports(1, &viewport);
+
+	return SUCCEEDED(hr);
+#endif
+
+	return false;
+}
+
+bool Win32Application::InitializeDirect2D()
+{
+#ifdef DIRECT2D
+	if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2dfactory))) {
+		MessageBox(NULL, "Could not create Direct2D factory", "Fatal error", MB_OK);
+		return false;
+	}
+
+	if (FAILED(d2dfactory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, D2D1::SizeU(clientwidth, clientheight)), &d2drendertarget))) {
+		MessageBox(NULL, "Could not create Direct2D render target", "Fatal error", MB_OK);
+		return false;
+	}
+
+	return true;
+#endif
+
+	return false;
+}
+
 bool Win32Application::InitializeVulkan()
 {
 #ifdef VULKAN
 	const char* instancelayers[] = {
 		"VK_LAYER_LUNARG_standard_validation",
+		"VK_LAYER_KHRONOS_validation",
 //		"VK_LAYER_RENDERDOC_Capture"
 	};
 
 	const char* instanceextensions[] = {
 		"VK_KHR_surface",
 		"VK_KHR_win32_surface",
-		"VK_EXT_debug_report"	// TODO: not part of standard
+		"VK_EXT_debug_utils"
+		//"VK_EXT_debug_report"	// TODO: not part of standard
 	};
 
 	const char* deviceextensions[] = {
@@ -698,6 +821,27 @@ bool Win32Application::InitializeVulkan()
 	V_RETURN(false, "Unknown error", res == VK_SUCCESS);
 
 #ifdef ENABLE_VALIDATION
+	driverInfo.vkCreateDebugUtilsMessengerEXT	= reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(driverInfo.instance, "vkCreateDebugUtilsMessengerEXT"));
+	driverInfo.vkDestroyDebugUtilsMessengerEXT	= reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(driverInfo.instance, "vkDestroyDebugUtilsMessengerEXT"));
+
+	VkDebugUtilsMessengerCreateInfoEXT callbackCreateInfo;
+
+	callbackCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	callbackCreateInfo.pNext = NULL;
+	callbackCreateInfo.messageSeverity =
+		VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT|VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+	//	| VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT|VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+
+	callbackCreateInfo.messageType =
+		VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT|VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT|VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+
+	callbackCreateInfo.pfnUserCallback = &DebugUtilsReportCallback;
+	callbackCreateInfo.flags = 0;
+	callbackCreateInfo.pUserData = nullptr;
+
+	driverInfo.vkCreateDebugUtilsMessengerEXT(driverInfo.instance, &callbackCreateInfo, nullptr, &driverInfo.messenger);
+
+	/*
 	driverInfo.vkCreateDebugReportCallbackEXT	= reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(vkGetInstanceProcAddr(driverInfo.instance, "vkCreateDebugReportCallbackEXT"));
 	driverInfo.vkDebugReportMessageEXT			= reinterpret_cast<PFN_vkDebugReportMessageEXT>(vkGetInstanceProcAddr(driverInfo.instance, "vkDebugReportMessageEXT"));
 	driverInfo.vkDestroyDebugReportCallbackEXT	= reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(driverInfo.instance, "vkDestroyDebugReportCallbackEXT"));
@@ -712,6 +856,7 @@ bool Win32Application::InitializeVulkan()
 
 	res = driverInfo.vkCreateDebugReportCallbackEXT(driverInfo.instance, &callbackCreateInfo, nullptr, &driverInfo.callback);
 	VK_ASSERT(res == VK_SUCCESS);
+	*/
 #endif
 
 	// enumerate devices
@@ -983,6 +1128,16 @@ bool Win32Application::InitializeDriverInterface(GraphicsAPI api)
 	case GraphicsAPIDirect3D10:
 		return InitializeDirect3D10();
 
+	case GraphicsAPIDirect3D11:
+#ifdef DIRECT2D
+		return InitializeDirect3D11(false);
+#else
+		return InitializeDirect3D11(true);
+#endif
+
+	case GraphicsAPIDirect2D:
+		return InitializeDirect2D();
+
 	case GraphicsAPIVulkan:
 		return InitializeVulkan();
 
@@ -1008,7 +1163,40 @@ void Win32Application::DestroyDriverInterface()
 	hglrc = nullptr;
 #endif
 
-#ifdef DIRECT3D10
+#ifdef DIRECT3D11
+	if (context) {
+		context->ClearState();
+		context->Release();
+	}
+
+	if (swapchain)
+		swapchain->Release();
+
+	if (device) {
+		ULONG rc = device->Release();
+
+		if (rc > 0)
+			MessageBox(NULL, "You forgot to release something", "Direct3D leak", MB_OK);
+	}
+
+#	ifdef _DEBUG
+	HMODULE debuglayer = GetModuleHandleW (L"Dxgidebug.dll");
+	IDXGIDebug* dxgidebug = nullptr;
+
+	typedef HRESULT (WINAPI *DXGIGETDEBUGINTERFACEPROC)(REFIID riid, void **ppDebug);
+	
+	if (debuglayer != NULL) {
+		DXGIGETDEBUGINTERFACEPROC getdebuginterface = NULL;
+
+		getdebuginterface = (DXGIGETDEBUGINTERFACEPROC)GetProcAddress (debuglayer, "DXGIGetDebugInterface");
+
+		if (getdebuginterface != NULL && SUCCEEDED(getdebuginterface (IID_IDXGIDebug, (void**)&dxgidebug))) {
+			dxgidebug->ReportLiveObjects (DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+			dxgidebug->Release ();
+		}
+	}
+#	endif
+#elif defined(DIRECT3D10)
 	if (device)
 		device->ClearState();
 
@@ -1031,6 +1219,18 @@ void Win32Application::DestroyDriverInterface()
 
 	if (d3dinterface)
 		d3dinterface->Release();
+#endif
+
+#ifdef DIRECT2D
+	if (d2drendertarget)
+		d2drendertarget->Release();
+
+	if (d2dfactory) {
+		ULONG rc = d2dfactory->Release();
+
+		if (rc > 0)
+			MessageBox(NULL, "You forgot to release something", "Direct2D leak", MB_OK);
+	}
 #endif
 
 #ifdef VULKAN
@@ -1057,7 +1257,8 @@ void Win32Application::DestroyDriverInterface()
 	vkDestroySurfaceKHR(driverInfo.instance, driverInfo.surface, 0);
 
 #	ifdef ENABLE_VALIDATION
-	driverInfo.vkDestroyDebugReportCallbackEXT(driverInfo.instance, driverInfo.callback, 0);
+	driverInfo.vkDestroyDebugUtilsMessengerEXT(driverInfo.instance, driverInfo.messenger, 0);
+	//driverInfo.vkDestroyDebugReportCallbackEXT(driverInfo.instance, driverInfo.callback, 0);
 #	endif
 
 	vkDestroyInstance(driverInfo.instance, NULL);
@@ -1076,7 +1277,7 @@ bool Win32Application::Present()
 		device->Present(NULL, NULL, NULL, NULL);
 #endif
 
-#ifdef DIRECT3D10
+#if defined(DIRECT3D10) || defined(DIRECT3D11)
 	if (swapchain)
 		swapchain->Present(1, 0);
 #endif
@@ -1155,10 +1356,19 @@ void Win32Application::SetTitle(const char* title)
 		SetWindowText(hwnd, title);
 }
 
+void* Win32Application::GetHandle() const
+{
+	return hwnd;
+}
+
 void* Win32Application::GetDriverInterface() const
 {
 #ifdef DIRECT3D9
 	return d3dinterface;
+#endif
+
+#ifdef DIRECT2D
+	return d2dfactory;
 #endif
 
 #ifdef VULKAN
@@ -1170,7 +1380,7 @@ void* Win32Application::GetDriverInterface() const
 
 void* Win32Application::GetLogicalDevice() const
 {
-#if defined(DIRECT3D9) || defined(DIRECT3D10)
+#if defined(DIRECT3D9) || defined(DIRECT3D10) || defined(DIRECT3D11)
 	return device;
 #endif
 
@@ -1183,12 +1393,25 @@ void* Win32Application::GetLogicalDevice() const
 
 void* Win32Application::GetSwapChain() const
 {
-#ifdef DIRECT3D10
+#if defined(DIRECT3D10) || defined(DIRECT3D11)
 	return swapchain;
+#endif
+
+#ifdef DIRECT2D
+	return d2drendertarget;
 #endif
 
 #ifdef VULKAN
 	return presenter;
+#endif
+
+	return nullptr;
+}
+
+void* Win32Application::GetDeviceContext() const
+{
+#ifdef DIRECT3D11
+	return context;
 #endif
 
 	return nullptr;

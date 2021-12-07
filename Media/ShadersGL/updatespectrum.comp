@@ -1,11 +1,11 @@
 
 #version 430
 
-layout(rg32f, binding = 0) uniform readonly image2D tilde_h0;
-layout(r32f, binding = 1) uniform readonly image2D frequencies;
+layout (rg32f, binding = 0) uniform readonly image2D tilde_h0;
+layout (r32f, binding = 1) uniform readonly image2D frequencies;
 
-layout(rg32f, binding = 2) uniform writeonly image2D tilde_h;
-layout(rg32f, binding = 3) uniform writeonly image2D tilde_D;
+layout (rg32f, binding = 2) uniform writeonly image2D tilde_h;
+layout (rg32f, binding = 3) uniform writeonly image2D tilde_D;
 
 uniform float time;
 

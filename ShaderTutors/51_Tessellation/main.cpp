@@ -352,11 +352,9 @@ void Render(float alpha, float elapsedtime)
 	// render tangent lines (with a cool shader trick)
 	drawlineseffect->SetMatrix("matProj", proj);
 	drawlineseffect->SetVector("color", &tangentcolor.r);
+	drawlineseffect->SetInt("numControlVertices", numvertices);
 	drawlineseffect->Begin();
 	{
-		glUniform1i(1, numvertices);
-
-		//glBindVertexArray(0);		// NOTE: deprecated
 		glBindVertexArray(controlpointVAO);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, controlpointVBO);

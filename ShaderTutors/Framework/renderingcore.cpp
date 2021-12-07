@@ -218,7 +218,10 @@ int RenderingCore::PrivateInterface::CreateContext(HDC hdc)
 		0
 	};
 
-	context.hrc = wglCreateContextAttribs(hdc, NULL, contextattribs);
+	if (contexts.size() > 0)
+		context.hrc = wglCreateContextAttribs(hdc, contexts[0].hrc, contextattribs);
+	else
+		context.hrc = wglCreateContextAttribs(hdc, NULL, contextattribs);
 
 	if (context.hrc == nullptr) {
 		MessageBox(NULL, "Could not create OpenGL core profile context", "Fatal error", MB_OK);

@@ -30,6 +30,7 @@ private:
 	float			fov;
 	float			aspect;
 	bool			finished;
+	bool			inertial;
 
 	void GetViewAndEye(Math::Matrix& view, Math::Vector3& eye) const;
 
@@ -38,6 +39,7 @@ public:
 	
 	void OrbitRight(float angle);
 	void OrbitUp(float angle);
+	void RollRight(float angle);
 	void PanRight(float offset);
 	void PanUp(float offset);
 	void Zoom(float offset);
@@ -59,12 +61,15 @@ public:
 	inline void SetClipPlanes(float znear, float zfar)	{ nearplane = znear; farplane = zfar; }
 	inline void SetZoomLimits(float zmin, float zmax)	{ minzoom = zmin; maxzoom = zmax; }
 	inline void SetPitchLimits(float pmin, float pmax)	{ minpitch = pmin; maxpitch = pmax; }
+	inline void SetIntertia(bool enable)				{ inertial = enable; }
 
 	inline float GetAspect() const						{ return aspect; }
 	inline float GetDistance() const					{ return distance; }
 	inline float GetNearPlane() const					{ return nearplane; }
 	inline float GetFarPlane() const					{ return farplane; }
 	inline float GetFov() const							{ return fov; }
+	inline float GetMinZoom() const						{ return minzoom; }
+	inline float GetMaxZoom() const						{ return maxzoom; }
 
 	inline bool IsAnimationFinished() const				{ return finished; }
 };

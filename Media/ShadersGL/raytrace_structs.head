@@ -1,0 +1,47 @@
+
+struct PackedVertex
+{
+	vec4 Values1;	// x, y, z, nx
+	vec4 Values2;	// ny, nz, u, v
+};	// 32 B
+
+struct AreaLight
+{
+	mat4 ToUnit;
+	mat4 ToWorld;
+	vec3 Luminance;
+	uint ShapeType;
+};	// 144 B
+
+struct BSDFInfo
+{
+	vec4 color;
+	uvec4 params;
+};	// 32 B
+
+struct BVHNode
+{
+	vec3 Min;
+	uint LeftOrCount;
+	vec3 Max;
+	uint RightOrStart;
+};	// 32 B
+
+struct BVHTraverseState
+{
+	uint stack[32];
+	uint nodeID;
+	uint discardID;
+	int depth;
+	float maxdist;
+};
+
+struct Intersection
+{
+	vec3 Position;
+	float Distance;
+	vec3 Normal;
+	vec2 TexCoord;
+	uint MaterialID;
+	uint NodeID;
+};	// 48 B

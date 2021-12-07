@@ -1,0 +1,195 @@
+
+//include "raytrace_structs.head"
+//include "pbr_common.head"
+//include "bsdf_common.head"
+
+struct PathVertex
+{
+	Intersection	Interaction;
+	vec3			Beta;			// (sub)path throughput weight
+	float			ForwardPDF;
+	vec3			OutDir;			// wo
+	float			ReversePDF;
+	bool			IsDelta;
+}; // ~7 registers
+
+vec3 BSDF_Vertex(BSDFInfo info, vec3 wi, vec3 wo, PathVertex curr)
+{
+	vec3 ret		= vec3(0.0);
+	vec3 albedo		= info.color.rgb;
+	vec3 n			= curr.Interaction.Normal;
+	vec2 uv			= curr.Interaction.TexCoord;
+	vec3 h			= normalize(wi + wo);
+
+	float roughness	= uintBitsToFloat(info.params.z);
+	float F0		= F0FromEta(uintBitsToFloat(info.params.w));
+	float ndotl		= dot(n, wi);
+	float ndotv		= dot(n, wo);
+
+	bool diracdelta	= ((info.params.y & BSDF_SPECULAR) == BSDF_SPECULAR);
+	uint bsdftype	= (info.params.y & (~BSDF_SPECULAR));
+	uint textureID	= info.params.x;
+
+	if (diracdelta)
+		return EvaluateDiracDelta(info, wo, n);
+
+	if (textureID != -1)
+		albedo = texture(albedoTextures, vec3(uv, float(textureID))).rgb;
+
+	switch (bsdftype) {
+	case BSDF_DIFFUSE:
+		// pure diffuse
+		//if (ndotl > 0.0 && ndotv > 0.0)
+		if (ndotl * ndotv > 0.0)	// TWOSIDED
+			ret = albedo * ONE_OVER_PI;
+
+		break;
+
+	case BSDF_TRANSPARENT:
+		if (ndotl > 0.0 && ndotv > 0.0)
+			ret = albedo * ONE_OVER_PI * (1.0 - info.color.a);
+
+		break;
+
+	case BSDF_INSULATOR:
+		ret = AshikhminShirley_General(wi, wo, h, n, albedo, roughness);
+		break;
+
+	case BSDF_CONDUCTOR:
+		// metals have no diffuse color
+		if (ndotl * ndotv > 0.0)	// TWOSIDED
+			ret = CookTorrance_General(wi, wo, n, info.color.rgb, roughness);
+
+		break;
+
+	case BSDF_DIELECTRIC:
+		ret = CookTorrance_General(wi, wo, n, vec3(F0), roughness);
+		break;
+
+	default:
+		break;
+	}
+
+	return ret;
+}
+
+float ConvertDensity(float pdf, PathVertex curr, PathVertex next)
+{
+	const bool islight = (next.Interaction.NodeID == -1);
+	const bool isdummylight = (islight && (next.Interaction.MaterialID == NUM_LIGHTS));
+
+	// CONSOLIDATE (work around ifs)
+	if (isdummylight)
+		return pdf;
+
+	vec3 w = next.Interaction.Position - curr.Interaction.Position;
+	float dist2 = dot(w, w);
+	vec3 wn = normalize(w);
+
+	// convert from solid angle density to area density
+	if (!islight)
+		pdf *= abs(dot(next.Interaction.Normal, wn));
+
+	return ((dist2 > 0.0) ? (pdf / dist2) : 0.0);
+}
+
+float PDF_Vertex(PathVertex curr, PathVertex prev, PathVertex next)
+{
+	// NOTE: assumes that 'curr' is a surface vertex
+
+	vec3 wp = normalize(prev.Interaction.Position - curr.Interaction.Position);
+	vec3 wn = normalize(next.Interaction.Position - curr.Interaction.Position);
+
+	BSDFInfo info = materials.data[curr.Interaction.MaterialID];
+	float pdf = PDF_BSDF(info, wn, wp, curr.Interaction.Normal);
+
+	// convert to area density
+	return ConvertDensity(pdf, curr, next);
+}
+
+vec4 FindConnection(const Intersection isect1, const Intersection isect2, int targetlight, int maxinteractions)
+{
+	vec4 result = vec4(1.0);
+	vec3 n;
+
+	// CONSOLIDATE: ez konkav reszekre igy nem jo (nem lesz self-shadow)
+	if (isect1.NodeID == isect2.NodeID)
+		return result;
+
+	BVHTraverseState state;
+	Intersection isect;
+	vec3 raydir = normalize(isect2.Position.xyz - isect1.Position.xyz);
+	
+	float targetdistance = distance(isect2.Position, isect1.Position);
+	int interactions = 0;
+	bool found = false;
+
+	if (targetlight != -1)
+		targetdistance = IntersectionParameter(n, lights.data[targetlight], isect1.Position, raydir);
+	
+	//if (targetdistance < EPSILON || targetdistance == FLT_MAX)
+	if (targetdistance == FLT_MAX)
+		return vec4(0.0);
+
+	// enough to test lights only once
+	//int index = FindIntersectionLight(bestt, raystart, raydir);
+
+	// want to find blockers up to targetdistance
+	InitBVHTraverseState(state, isect1.NodeID, targetdistance);
+
+	while (true) {
+		found = TraverseBVHAnyHit(state, isect, isect1.Position, raydir);
+
+		if (!found)
+			break;
+		
+		// skip transparent surfaces
+		BSDFInfo info = materials.data[isect.MaterialID];
+
+		if ((interactions == maxinteractions) || (info.params.y & BSDF_TRANSPARENT) == 0) {
+			// something is blocking the connection
+			interactions = -1;
+			break;
+		}
+
+		result.xyz *= (1.0 - info.color.a);
+		//result.w *= 1.0;
+		
+		++interactions;
+	}
+
+	/*
+	if (targetlight == -1) {
+		// looking for the exact node
+		if (interactions == -1 && isect.NodeID != isect2.NodeID)
+			result.w = 0.0;
+	} else {
+		// looking for a blocker
+		if (interactions == -1)
+			result.w = 0.0;
+	}
+	*/
+
+	if (interactions == -1)
+		result.w = 0.0;
+
+	return result;
+}
+
+vec3 GeometryTerm(out vec3 connection, PathVertex v0, PathVertex v1, int maxinteractions)
+{
+	connection = v1.Interaction.Position.xyz - v0.Interaction.Position.xyz;
+
+	float denom = dot(connection, connection);
+	float g = 1.0 / denom;
+
+	connection = normalize(connection);
+
+	// assume that both are surface interactions
+	g *= abs(dot(v0.Interaction.Normal, connection));
+	g *= abs(dot(v1.Interaction.Normal, connection));
+
+	vec4 weight_pdf = FindConnection(v0.Interaction, v1.Interaction, -1, maxinteractions);
+
+	return weight_pdf.xyz * weight_pdf.w * g;
+}

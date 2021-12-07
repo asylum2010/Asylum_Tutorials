@@ -4,6 +4,7 @@
 #include "pbr_common.head"
 #include "shadow_common.head"
 
+uniform sampler2D baseColorSamp;
 uniform sampler2D shadowMap;
 
 uniform vec2 clipPlanes;
@@ -37,15 +38,13 @@ void main()
 	vec3 n = normalize(wnorm);
 	vec3 v = normalize(vdir);
 	vec3 l = normalize(ldir);
-	vec3 h = normalize(v + l);
 
-	float ndotv = clamp(dot(n, v), 0.0, 1.0);
 	float ndotl = clamp(dot(n, l), 0.0, 1.0);
-	float ndoth = clamp(dot(n, h), 0.0, 1.0);
-	float ldoth = clamp(dot(l, h), 0.0, 1.0);
 
-	vec4 fd = BRDF_Lambertian(tex);
-	vec3 fs = BRDF_CookTorrance(ldoth, ndoth, ndotv, ndotl, matParams.x);
+	vec4 fd = BRDF_Lambertian(baseColorSamp, tex);
+	
+	vec3 F0 = mix(vec3(0.04), baseColor.rgb, matParams.y);
+	vec3 fs = BRDF_CookTorrance(l, v, n, F0, matParams.x);
 
 	float dist		= length(ldir);
 	float dist2		= max(dot(ldir, ldir), 1e-4);

@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\ShaderTutors\73_ImageTiling\main.cpp" />
+    <ClCompile Include="..\..\ShaderTutors\Common\application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32openfiledialog.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\3Dmath.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\basiccamera.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\d2dext.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{87facf8a-1374-48ae-8cbd-4adfce2b8171}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ShaderTutors\Common\application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32openfiledialog.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\3Dmath.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\basiccamera.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\d2dext.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

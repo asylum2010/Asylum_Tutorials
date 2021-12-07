@@ -1,7 +1,7 @@
 
 #version 430
 
-layout(location = 0) uniform mat4 matProj;
+uniform mat4 matProj;
 
 layout(std140, binding = 0) readonly buffer TangentData {
 	vec4 data[];

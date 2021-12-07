@@ -1,0 +1,358 @@
+
+#version 450
+
+#include "raytrace_structs.head"
+#include "pbr_common.head"
+#include "raytrace_common.head"
+
+layout (std430, binding = 0) readonly buffer VertexBuffer {
+	PackedVertex data[];
+} vertices;
+
+layout (std430, binding = 1) readonly buffer IndexBuffer {
+	uint data[];
+} indices;
+
+layout (std430, binding = 2) readonly buffer BVHierarchy {
+	BVHNode data[];
+} hierarchy;
+
+layout (std430, binding = 3) readonly buffer TriangleIDs {
+	uvec2 data[];
+} triangleIDs;
+
+layout (std430, binding = 4) readonly buffer AreaLights {
+	AreaLight data[];
+} lights;
+
+layout (std430, binding = 5) readonly buffer Materials {
+	BSDFInfo data[];
+} materials;
+
+layout (binding = 9) uniform sampler2DArray albedoTextures;
+
+#include "bsdf_common.head"
+#include "accelstructure.head"
+
+#define MODEL_EPSILON	1e-3	// 1 mm
+#define MAX_DEPTH		15
+#define MAX_SAMPLES		256
+
+uniform mat4 matViewProj;
+uniform mat4 matViewProjInv;
+uniform vec3 eyePos;
+uniform vec3 camForward;
+uniform vec2 texelSize;
+
+uniform float time;
+uniform float camArea;
+
+layout (rgba32f, binding = 6) uniform restrict image2D accumTarget;
+layout (rg32f, binding = 7) uniform restrict image2D counterTarget;
+layout (rgba32f, binding = 8) uniform restrict writeonly image2D renderTarget;
+
+BSDFInfo genericlightBSDF;
+vec3 primaryray;
+
+// --- Path tracer ------------------------------------------------------------
+
+void SampleAreaLight(out Ray ray, AreaLight light, vec3 p, vec2 xi)
+{
+	if (light.ShapeType == SHAPE_PLATE) {
+		vec3 t = light.ToWorld[0].xyz;
+		vec3 b = light.ToWorld[2].xyz;
+		vec3 o = light.ToWorld[3].xyz;
+
+		SampleRayFromRect(ray, p, o, t, b, xi);
+	} else if (light.ShapeType == SHAPE_SPHERE) {
+		vec3 center = vec3(light.ToWorld[3].xyz);
+		float radius = light.ToWorld[0][0];
+
+		SampleRayFromSphere(ray, p, center, radius, xi);
+	}
+}
+
+float PDF_AreaLight(AreaLight light, vec3 lp, vec3 vp)
+{
+	float ret = 0.0;
+
+	if (light.ShapeType == SHAPE_PLATE) {
+		vec3 t = light.ToWorld[0].xyz;
+		vec3 b = light.ToWorld[2].xyz;
+		
+		// CONSOLIDATE: ez itt nem cos kene legyen??
+		ret = PDF_UniformSampledRect(vp - lp, t, b);
+	} else if (light.ShapeType == SHAPE_SPHERE) {
+		vec3 center = vec3(light.ToWorld[3].xyz);
+		float radius = light.ToWorld[0][0];
+
+		ret = PDF_ConeSampledSphere(vp, center, radius);
+	}
+
+	return ret;
+}
+
+float Visibility(vec3 raystart, vec3 raydir, uint discardID, float targetdistance)
+{
+	BVHTraverseState state;
+	Intersection isect;
+	bool found = false;
+	
+	// want to find blockers up to targetdistance
+	InitBVHTraverseState(state, discardID, targetdistance);
+
+	found = TraverseBVHAnyHit(state, isect, raystart, raydir);
+
+	return (found ? 0.0 : 1.0);
+}
+
+int FindIntersectionFast(inout Intersection isect, vec3 raystart, vec3 raydir, uint discardID)
+{
+	BVHTraverseState state;
+	int index = -1;
+
+	isect.Distance = FLT_MAX;
+
+	// find closest light first
+	for (int i = 0; i < NUM_LIGHTS; ++i) {
+		AreaLight light = lights.data[i];
+
+		vec3 n;
+		float t = IntersectionParameter(n, light, raystart, raydir);
+
+		if (t < isect.Distance) {
+			isect.Distance = t;
+			index = i;
+		}
+	}
+
+	InitBVHTraverseState(state, discardID, isect.Distance);
+
+	// look for blockers
+	if (TraverseBVHAnyHit(state, isect, raystart, raydir)) {
+		// something is in the way
+		index = -1;
+	} else {
+		// hit light
+		isect.Position = raystart + isect.Distance * raydir;
+		isect.NodeID = -1;
+	}
+
+	return index;
+}
+
+vec3 SampleLightsExplicit(Intersection isect, BSDFInfo info, vec3 v)
+{
+	Ray		ray;
+	vec3	sum	= vec3(0.0);
+	vec3	n	= isect.Normal;
+	vec2	xi;
+
+	float	weight;
+	int		index;
+
+#ifdef ENABLE_TWOSIDED
+	float cosangle_ext = dot(v, n);
+
+	if (cosangle_ext < 0.0) {
+		n = -n;
+	}
+#endif
+
+	for (int k = 0; k < NUM_LIGHTS; ++k) {
+		const AreaLight light = lights.data[k];
+
+		xi = Random2();
+
+		// importance sample light
+		SampleAreaLight(ray, light, isect.Position, xi);
+
+		if (ray.DirectionAndPDF.w > EPSILON) {
+			// cast shadow ray
+			float targetdist	= distance(ray.PositionAndPDF.xyz, isect.Position);
+			float lightpdf		= ray.DirectionAndPDF.w;
+
+			float vis = Visibility(isect.Position, ray.DirectionAndPDF.xyz, isect.NodeID, targetdist);
+			float ndotl = vis * max(0.0, dot(ray.DirectionAndPDF.xyz, n));
+
+			vec4 value_pdf = EvaluateBSDF(info, ray.DirectionAndPDF.xyz, v, n, isect.TexCoord);
+
+			if (value_pdf.w > EPSILON) {
+				weight = PowerHeuristic(1, lightpdf, 1, value_pdf.w);
+				sum += (light.Luminance.rgb * value_pdf.xyz * ndotl * weight) / lightpdf;
+			}
+		}
+	}
+
+	xi = Random2();
+
+	Intersection lisect;
+	vec4 wi_pdf;
+	vec3 value;
+
+	// importance sample BRDF
+	SampleEvaluateBSDFImportance(wi_pdf, value, info, v, n, isect.TexCoord, xi);
+
+	if (wi_pdf.w < EPSILON)
+		return sum;
+
+	// test if the sample hits any light
+	index = FindIntersectionFast(lisect, isect.Position, wi_pdf.xyz, isect.NodeID);
+
+	if (index >= 0 && index < NUM_LIGHTS) {
+		AreaLight light = lights.data[index];
+		float lightpdf = PDF_AreaLight(light, lisect.Position, isect.Position);
+
+		if (lightpdf > EPSILON) {
+			weight = PowerHeuristic(1, wi_pdf.w, 1, lightpdf);
+			sum += (light.Luminance.rgb * value * weight);
+		}
+	}
+
+	return sum;
+}
+
+vec3 TraceScene()
+{
+	Intersection	isect;
+	BSDFInfo		info;
+
+	vec4			sample1;
+	vec3			color		= vec3(0.0);
+	vec3			throughput	= vec3(1.0);
+	vec3			outray		= primaryray;
+	vec3			indirect;
+	vec2			xi;
+
+	int				index;
+	bool			diracdelta	= false;
+	bool			refracted	= false;
+
+	isect.Position = eyePos;
+	isect.NodeID = -1;
+
+#if 0	// TEST_DIRECT
+	index = FindIntersection(isect, isect.Position, outray);
+
+	if (index < 0) {
+		// ray escaped
+		return color;
+	}
+
+	if (isect.NodeID == -1) {
+		// hit light
+		AreaLight light = lights.data[index];
+		return light.Luminance;
+	}
+
+	info = materials.data[isect.MaterialID];
+
+	color = SampleLightsExplicit(isect, info, -outray);
+
+#else
+	for (int bounce = 0; bounce < MAX_DEPTH; ++bounce) {
+		index = FindIntersection(isect, isect.Position, outray);
+
+		if (index < 0) {
+			// ray escaped
+			break;
+		}
+
+		if (isect.NodeID == -1) {
+			// hit light
+			AreaLight light = lights.data[index];
+
+#ifdef NEXT_EVENT_ESTIMATION
+			// don't double dip
+			if (bounce == 0 || diracdelta || refracted) {
+				color += throughput * light.Luminance;
+			}
+#else
+			color += throughput * light.Luminance;
+#endif
+
+			break;
+		}
+
+		info = materials.data[isect.MaterialID];
+		diracdelta = ((info.params.y & BSDF_SPECULAR) == BSDF_SPECULAR);
+
+		// add some bias
+		isect.Position -= MODEL_EPSILON * outray;
+
+#ifdef NEXT_EVENT_ESTIMATION
+		if (!diracdelta) {
+			// direct lighting
+			color += throughput * SampleLightsExplicit(isect, info, -outray);
+		}
+#endif
+
+		xi = Random2();
+
+		// sample BSDF
+		refracted = SampleEvaluateBSDFImportance(sample1, indirect, info, -outray, isect.Normal, isect.TexCoord, xi);
+
+		if (sample1.w < EPSILON || IsBlack(indirect))
+			break;
+
+		// flip the bias if the ray refracted
+		if (refracted)
+			isect.Position += 2.0 * MODEL_EPSILON * outray;
+
+		throughput *= indirect;
+		outray = sample1.xyz;
+
+		// Russian roulette
+		if (bounce > 3) {
+			float q = max(throughput.x, max(throughput.y, throughput.z));
+
+			if (xi.x > q) {
+				break;
+			}
+
+			throughput /= q;
+		}
+	}
+#endif
+
+	return color;
+}
+
+layout (local_size_x = 16, local_size_y = 16) in;
+void main()
+{
+	ivec2 loc	= ivec2(gl_GlobalInvocationID.xy);
+	vec3 res	= vec3(gl_NumWorkGroups * gl_WorkGroupSize);
+	vec2 coord	= vec2(gl_GlobalInvocationID.xy);
+	vec2 spos	= coord * texelSize;
+	vec4 ndc	= vec4(spos * 2.0 - vec2(1.0), 0.1, 1.0);
+	vec4 wpos	= matViewProjInv * ndc;
+
+	// initialize RNG
+	randomSeed = time + res.y * coord.x / res.x + coord.y / res.y;
+
+	wpos /= wpos.w;
+	primaryray = normalize(wpos.xyz - eyePos);
+
+	genericlightBSDF.color = vec4(0.5, 0.5, 0.5, 1.0);
+	genericlightBSDF.params = uvec4(-1, BSDF_DIFFUSE, 0, 0);
+
+	vec4 currcolor = vec4(0.0);
+	vec4 prevcolor = imageLoad(accumTarget, loc);
+	vec4 counter = imageLoad(counterTarget, loc);
+
+	if (counter.x < MAX_SAMPLES) //
+		currcolor.rgb = TraceScene();
+
+	counter.x = min(counter.x + 1, MAX_SAMPLES);
+
+	imageStore(accumTarget, loc, prevcolor + currcolor);
+	imageStore(counterTarget, loc, counter);
+
+	vec4 finalcolor = prevcolor + currcolor;
+
+	finalcolor /= counter.x;
+	finalcolor.w = 1.0;
+
+	imageStore(renderTarget, loc, finalcolor);
+}

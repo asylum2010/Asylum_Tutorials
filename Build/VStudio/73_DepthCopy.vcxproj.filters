@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{205216e3-ffb1-49e3-95e0-4aab7a82468c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{b9427deb-e644-44f7-ad99-e9025b3e9f94}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\ShaderTutors\Common\3Dmath.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\basiccamera.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32openfiledialog.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\73_DepthCopy\main.cpp" />
+    <ClCompile Include="..\..\ShaderTutors\Common\dx11ext.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ShaderTutors\Common\3Dmath.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\basiccamera.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32openfiledialog.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\dx11ext.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\..\Media\ShadersDX11\blinnphong11.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\Media\ShadersDX11\combinelayers11.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>

@@ -123,6 +123,7 @@ PFNGLDELETEQUERIESPROC							glDeleteQueries = 0;
 PFNGLBEGINQUERYPROC								glBeginQuery = 0;
 PFNGLENDQUERYPROC								glEndQuery = 0;
 PFNGLGETQUERYOBJECTUIVPROC						glGetQueryObjectuiv = 0;
+PFNGLGETBUFFERPARAMETERIVPROC					glGetBufferParameteriv = 0;
 
 // 3.1
 PFNGLDRAWARRAYSINSTANCEDPROC					glDrawArraysInstanced = 0;
@@ -201,6 +202,7 @@ PFNGLPROGRAMUNIFORMMATRIX4FVPROC				glProgramUniformMatrix4fv = 0;
 
 // 4.2
 PFNGLTEXSTORAGE2DPROC									glTexStorage2D = 0;
+PFNGLTEXSTORAGE3DPROC									glTexStorage3D = 0;
 PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC	glDrawElementsInstancedBaseVertexBaseInstance = 0;
 
 // 4.3
@@ -222,9 +224,15 @@ PFNGLDEBUGMESSAGECONTROLPROC					glDebugMessageControl = 0;
 PFNGLDEBUGMESSAGECALLBACKPROC					glDebugMessageCallback = 0;
 PFNGLGETDEBUGMESSAGELOGPROC						glGetDebugMessageLog = 0;
 
+PFNGLGETPROGRAMRESOURCENAMEPROC					glGetProgramResourceName = 0;
+PFNGLGETPROGRAMRESOURCEINDEXPROC				glGetProgramResourceIndex = 0;
+PFNGLGETPROGRAMRESOURCEIVPROC					glGetProgramResourceiv = 0;
+
 // 4.4
 PFNGLBUFFERSTORAGEPROC							glBufferStorage = 0;
 PFNGLBINDVERTEXBUFFERSPROC						glBindVertexBuffers = 0;
+PFNGLCLEARTEXIMAGEPROC							glClearTexImage = 0;
+PFNGLCLEARTEXSUBIMAGEPROC						glClearTexSubImage = 0;
 
 // 4.6
 PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC			glMultiDrawElementsIndirectCount = 0;
@@ -269,6 +277,7 @@ bool GLExtensions::ARB_shader_atomic_counters = false;
 bool GLExtensions::ARB_debug_output = false;
 bool GLExtensions::ARB_multi_draw_indirect = false;
 bool GLExtensions::ARB_indirect_parameters = false;
+bool GLExtensions::ARB_shader_group_vote = false;
 
 bool GLExtensions::EXT_texture_compression_s3tc = false;
 bool GLExtensions::EXT_texture_cube_map = false;
@@ -409,6 +418,7 @@ void GLExtensions::QueryFeatures (void* hdc)
 		ARB_shader_atomic_counters			= IsSupported ("GL_ARB_shader_atomic_counters");
 		ARB_multi_draw_indirect				= IsSupported ("GL_ARB_multi_draw_indirect");
 		ARB_indirect_parameters				= IsSupported ("GL_ARB_indirect_parameters");
+		ARB_shader_group_vote				= IsSupported ("GL_ARB_shader_group_vote");
 
 		glGetIntegerv (GL_MAX_UNIFORM_BLOCK_SIZE, &MaxUniformBlockSize);
 		glGetIntegerv (GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &UniformBufferOffsetAlignment);
@@ -464,6 +474,7 @@ void GLExtensions::QueryFeatures (void* hdc)
 	GET_ADDRESS(glBeginQuery, PFNGLBEGINQUERYPROC, "glBeginQueryARB");
 	GET_ADDRESS(glEndQuery, PFNGLENDQUERYPROC, "glEndQueryARB");
 	GET_ADDRESS(glGetQueryObjectuiv, PFNGLGETQUERYOBJECTUIVPROC, "glGetQueryObjectuivARB");
+	GET_ADDRESS(glGetBufferParameteriv, PFNGLGETBUFFERPARAMETERIVPROC, "glGetBufferParameterivARB");
 
 	GET_ADDRESS(glMultiDrawElements, PFNGLMULTIDRAWELEMENTSPROC, "glMultiDrawElementsARB");
 
@@ -644,6 +655,7 @@ void GLExtensions::QueryFeatures (void* hdc)
 	if (GLVersion >= GL_4_2) {
 		GET_ADDRESS(glDrawElementsInstancedBaseVertexBaseInstance, PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC, "");
 		GET_ADDRESS(glTexStorage2D, PFNGLTEXSTORAGE2DPROC, "");
+		GET_ADDRESS(glTexStorage3D, PFNGLTEXSTORAGE3DPROC, "");
 	}
 
 	if (GLVersion >= GL_4_3) {
@@ -652,11 +664,17 @@ void GLExtensions::QueryFeatures (void* hdc)
 		GET_ADDRESS(glVertexBindingDivisor, PFNGLVERTEXBINDINGDIVISORPROC, "");
 		GET_ADDRESS(glBindVertexBuffer, PFNGLBINDVERTEXBUFFERPROC, "");
 		GET_ADDRESS(glMultiDrawElementsIndirect, PFNGLMULTIDRAWELEMENTSINDIRECTPROC, "");
+
+		GET_ADDRESS(glGetProgramResourceName, PFNGLGETPROGRAMRESOURCENAMEPROC, "");
+		GET_ADDRESS(glGetProgramResourceIndex, PFNGLGETPROGRAMRESOURCEINDEXPROC, "");
+		GET_ADDRESS(glGetProgramResourceiv, PFNGLGETPROGRAMRESOURCEIVPROC, "");
 	}
 
 	if (GLVersion >= GL_4_4) {
 		GET_ADDRESS(glBufferStorage, PFNGLBUFFERSTORAGEPROC, "");
 		GET_ADDRESS(glBindVertexBuffers, PFNGLBINDVERTEXBUFFERSPROC, "");
+		GET_ADDRESS(glClearTexImage, PFNGLCLEARTEXIMAGEPROC, "");
+		GET_ADDRESS(glClearTexSubImage, PFNGLCLEARTEXSUBIMAGEPROC, "");
 	}
 
 	if (GLVersion >= GL_4_6) {

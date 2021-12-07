@@ -4,8 +4,8 @@
 #define PI		3.1415926535897932
 #define TWO_PI	6.2831853071795864
 
-layout(rg32f, binding = 0) uniform readonly image2D readbuff;
-layout(rg32f, binding = 1) uniform writeonly image2D writebuff;
+layout (rg32f, binding = 0) uniform readonly image2D readbuff;
+layout (rg32f, binding = 1) uniform writeonly image2D writebuff;
 
 shared vec2 values[DISP_MAP_SIZE];
 

@@ -421,7 +421,7 @@ void UpdateParticles(float dt)
 				toi = (0.5f - Math::Vec3Dot((const Math::Vector3&)newp.previous, (const Math::Vector3&)planes[j]) - planes[j].w) / denom;
 				
 				if (((toi <= 1 && toi >= 0) ||		// normal case
-					 (toi < 0 && pastcollision)) &&	// allow past collision
+					(toi < 0 && pastcollision)) &&	// allow past collision
 					toi < besttoi)
 				{
 					besttoi = toi;

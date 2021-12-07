@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{10da620d-030b-4dbc-81dd-01be57318a80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{d1b9b1d1-3227-4d98-a076-5a2c55aea456}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\ShaderTutors\Common\application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32openfiledialog.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\3Dmath.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\basiccamera.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\d2dext.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\73_SymbolFill\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ShaderTutors\Common\application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32openfiledialog.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\3Dmath.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\basiccamera.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\d2dext.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Media\ShadersDX11\simplecolor.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

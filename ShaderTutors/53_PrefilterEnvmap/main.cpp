@@ -480,7 +480,7 @@ bool InitScene()
 	device->CreateBlendState(&blenddesc, &noblend);
 
 	// render text
-	if (FAILED(DXRenderTextEx(device, "1 - Conductor (metal)\n2 - Insulator (dielectric)", 512, 512, L"Arial", 1, Gdiplus::FontStyleBold, 25, &helptext)))
+	if (FAILED(DXRenderTextEx(device, "1 - Conductor (metal)\n2 - Insulator (plastic)", 512, 512, L"Arial", 1, Gdiplus::FontStyleBold, 25, &helptext)))
 		return false;
 
 	// setup camera

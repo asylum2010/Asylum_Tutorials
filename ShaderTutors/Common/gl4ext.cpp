@@ -9,6 +9,10 @@
 #ifdef _WIN32
 // NOTE: include after gl4ext.h
 #	include <gdiplus.h>
+#elif defined(__APPLE__)
+#	import <Cocoa/Cocoa.h>
+#	import <CoreText/CoreText.h>
+#	import <CoreGraphics/CoreGraphics.h>
 #endif
 
 GLint map_Format_Internal[] = {
@@ -115,6 +119,25 @@ static Gdiplus::Bitmap* Win32LoadPicture(const std::string& file)
 	}
 
 	return bitmap;
+}
+#elif defined(__APPLE__)
+std::string GetResource(const std::string& file)
+{
+	std::string name, ext;
+	size_t loc1 = file.find_last_of('.');
+	size_t loc2 = file.find_last_of('/');
+	
+	assert(loc1 != std::string::npos);
+	
+	if (loc2 != std::string::npos)
+		name = file.substr(loc2 + 1, loc1 - loc2 - 1);
+	else
+		name = file.substr(0, loc1);
+	
+	ext = file.substr(loc1 + 1);
+	
+	NSString* path = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:name.c_str()] ofType:[NSString stringWithUTF8String:ext.c_str()]];
+	return std::string([path UTF8String]);
 }
 #endif
 
@@ -740,7 +763,12 @@ void OpenGLEffect::AddUniform(const char* name, GLuint location, GLuint count, G
 			memset(reg, 0, uni.RegisterCount * 4 * sizeof(float));
 
 		floatsize += count;
-	} else if (type == GL_INT || (type >= GL_INT_VEC2 && type <= GL_INT_VEC4) || type == GL_SAMPLER_2D || type == GL_SAMPLER_BUFFER || type == GL_SAMPLER_CUBE || type == GL_IMAGE_2D) {
+	} else if (
+		type == GL_INT ||
+		(type >= GL_INT_VEC2 && type <= GL_INT_VEC4) ||
+		type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_ARRAY || type == GL_SAMPLER_BUFFER ||
+		type == GL_SAMPLER_CUBE || type == GL_IMAGE_2D)
+	{
 		uni.StartRegister = intsize;
 
 		if (intsize + count > intcap) {
@@ -915,6 +943,36 @@ void OpenGLEffect::QueryUniforms()
 			AddUniform(uniname, loc, size, type);
 		}
 	}
+}
+
+void OpenGLEffect::Introspect()
+{
+#ifndef __APPLE__
+	GLenum props1[] = { GL_BUFFER_DATA_SIZE, GL_NUM_ACTIVE_VARIABLES };
+	GLenum props2[] = { GL_ACTIVE_VARIABLES };
+	GLenum props3[] = { GL_OFFSET };
+
+	GLint count = 0;
+	GLint varcount = 0;
+	GLint length = 0;
+	GLint values[10] = {};
+
+	glGetProgramInterfaceiv(program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count);
+
+	for (GLint i = 0; i < count; ++i) {
+		glGetProgramResourceiv(program, GL_SHADER_STORAGE_BLOCK, i, ARRAY_SIZE(props1), props1, ARRAY_SIZE(values), &length, values);
+
+		varcount = values[1];
+		std::cout << "Shader storage block (" << i << "): size = " << values[0] << " variables = " << varcount << "\n";
+
+		glGetProgramResourceiv(program, GL_SHADER_STORAGE_BLOCK, i, ARRAY_SIZE(props2), props2, ARRAY_SIZE(values), &length, values);
+
+		for (GLint j = 0; j < varcount; ++j) {
+			glGetProgramResourceiv(program, GL_BUFFER_VARIABLE, values[j], ARRAY_SIZE(props3), props3, ARRAY_SIZE(values), &length, values);
+			std::cout << "  variable (" << j << "): offset = " << values[0] << "\n";
+		}
+	}
+#endif
 }
 
 void OpenGLEffect::Begin()
@@ -1782,14 +1840,14 @@ bool GLCreateCubeTextureFromFiles(const char* files[6], bool srgb, GLuint* out)
 		bitmap->UnlockBits(&data);
 
 		delete bitmap;
-#else
-		// TODO:
-#endif
-
+		
 		if (srgb)
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + k, 0, GL_SRGB8_ALPHA8, data.Width, data.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgdata);
 		else
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + k, 0, GL_RGBA, data.Width, data.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgdata);
+#else
+		// TODO:
+#endif
 
 		delete[] imgdata;
 	}
@@ -1871,7 +1929,7 @@ bool GLCreateMesh(GLuint numvertices, GLuint numindices, GLuint options, OpenGLV
 	return true;
 }
 
-bool GLCreateMeshFromQM(const char* file, OpenGLMesh** mesh)
+bool GLCreateMeshFromQM(const char* file, OpenGLMesh** mesh, uint32_t options)
 {
 	static const uint8_t usages[] = {
 		GLDECLUSAGE_POSITION,
@@ -1974,7 +2032,7 @@ bool GLCreateMeshFromQM(const char* file, OpenGLMesh** mesh)
 	decl[numelems].UsageIndex = 0;
 
 	// create mesh
-	success = GLCreateMesh(numvertices, numindices, (istride == 4 ? GLMESH_32BIT : 0), decl, mesh);
+	success = GLCreateMesh(numvertices, numindices, options | (istride == 4 ? GLMESH_32BIT : 0), decl, mesh);
 
 	if (!success)
 		goto _fail;
@@ -1983,9 +2041,23 @@ bool GLCreateMeshFromQM(const char* file, OpenGLMesh** mesh)
 	fread(data, vstride, numvertices, infile);
 	(*mesh)->UnlockVertexBuffer();
 
-	(*mesh)->LockIndexBuffer(0, 0, GLLOCK_DISCARD, &data);
-	fread(data, istride, numindices, infile);
-	(*mesh)->UnlockIndexBuffer();
+	if ((options & GLMESH_32BIT) && istride == 2) {
+		uint16_t* tmpdata = new uint16_t[numindices];
+		fread(tmpdata, istride, numindices, infile);
+
+		(*mesh)->LockIndexBuffer(0, 0, GLLOCK_DISCARD, &data);
+		{
+			for (uint16_t i = 0; i < numindices; ++i)
+				*((uint32_t*)data + i) = tmpdata[i];
+		}
+		(*mesh)->UnlockIndexBuffer();
+
+		delete[] tmpdata;
+	} else {
+		(*mesh)->LockIndexBuffer(0, 0, GLLOCK_DISCARD, &data);
+		fread(data, istride, numindices, infile);
+		(*mesh)->UnlockIndexBuffer();
+	}
 
 	if (version >= 1) {
 		fread(&unused, 4, 1, infile);
@@ -2520,6 +2592,126 @@ bool GLCreateTextureFromFile(const char* file, bool srgb, GLuint* out, GLuint fl
 	return (texid != 0);
 }
 
+bool GLCreateTextureArrayFromFiles(const std::string* files, uint32_t numfiles, bool srgb, GLuint* out)
+{
+	if (out == nullptr)
+		return false;
+
+	uint8_t*	imgdata	= nullptr;
+	GLuint		texid	= 0;
+	GLsizei		width	= 0;
+	GLsizei		height	= 0;
+
+	glGenTextures(1, &texid);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, texid);
+
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+#ifdef _WIN32
+	std::vector<Gdiplus::Bitmap*> bitmaps;
+
+	bitmaps.resize(numfiles, nullptr);
+
+	for (uint32_t i = 0; i < numfiles; ++i) {
+		bitmaps[i] = Win32LoadPicture(files[i]);
+
+		if (bitmaps[i] == nullptr) {
+			width = height = 0;
+			break;
+		}
+
+		if (bitmaps[i]->GetLastStatus() != Gdiplus::Ok) {
+			width = height = 0;
+			break;
+		}
+
+		width = Math::Max<GLsizei>(width, bitmaps[i]->GetWidth());
+		height = Math::Max<GLsizei>(height, bitmaps[i]->GetHeight());
+	}
+
+	if (width == 0 || height == 0) {
+		for (Gdiplus::Bitmap* bitmap : bitmaps)
+			delete bitmap;
+
+		return false;
+	}
+
+	// resize & upload
+	Gdiplus::Bitmap* scaled = new Gdiplus::Bitmap(width, height, PixelFormat32bppARGB);
+	Gdiplus::Graphics graphics(scaled);
+	Gdiplus::Rect target(0, 0, width, height);
+	Gdiplus::BitmapData data;
+	GLsizei miplevels = Math::Max<uint32_t>(1, (uint32_t)floor(log(Math::Max<double>(width, height)) / 0.69314718055994530941723212));
+
+	graphics.SetInterpolationMode(Gdiplus::InterpolationModeNearestNeighbor);
+
+	// to avoid ringing
+	Gdiplus::ImageAttributes wrapmode;
+	wrapmode.SetWrapMode(Gdiplus::WrapModeTileFlipXY);
+
+	if (srgb)
+		glTexStorage3D(GL_TEXTURE_2D_ARRAY, miplevels, GL_SRGB8_ALPHA8, width, height, numfiles);
+	else
+		glTexStorage3D(GL_TEXTURE_2D_ARRAY, miplevels, GL_RGBA8, width, height, numfiles);
+
+	imgdata = new uint8_t[width * height * 4];
+
+	for (size_t i = 0; i < bitmaps.size(); ++i) {
+		Gdiplus::Bitmap* bitmap = bitmaps[i];
+
+		graphics.DrawImage(bitmap, target, 0, 0, bitmap->GetWidth(), bitmap->GetHeight(), Gdiplus::UnitPixel, &wrapmode);
+
+		scaled->LockBits(0, Gdiplus::ImageLockModeRead, PixelFormat32bppARGB, &data);
+		{
+			memcpy(imgdata, data.Scan0, data.Width * data.Height * 4);
+
+			GL_ASSERT(data.Width == width);
+			GL_ASSERT(data.Height == height);
+
+			for (UINT j = 0; j < data.Height; ++j) {
+				// swap red and blue
+				for (UINT k = 0; k < data.Width; ++k) {
+					UINT index = (j * data.Width + k) * 4;
+					Math::Swap<uint8_t>(imgdata[index + 0], imgdata[index + 2]);
+				}
+			}
+		}
+		scaled->UnlockBits(&data);
+
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, (GLint)i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, imgdata);
+	}
+	
+	delete[] imgdata;
+	delete scaled;
+
+	for (Gdiplus::Bitmap* bitmap : bitmaps)
+		delete bitmap;
+#else
+	// TODO:
+#endif
+
+	glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+
+	GLenum err = glGetError();
+
+	if (err != GL_NO_ERROR) {
+		glDeleteTextures(1, &texid);
+		texid = 0;
+
+		std::cout << "Error: Could not create texture array!\n";
+	} else {
+		std::cout << "Created texture array " << width << "x" << height << "\n";
+	}
+
+	*out = texid;
+
+	return (texid != 0);
+}
+
 bool GLCreateVolumeTextureFromFile(const char* file, bool srgb, GLuint* out)
 {
 	DDS_Image_Info info;
@@ -2655,8 +2847,11 @@ GLuint GLCompileShaderFromFile(GLenum type, const char* file, const char* define
 
 #ifdef _MSC_VER
 	fopen_s(&infile, file, "rb");
+#elif defined(__APPLE__)
+	std::string resfile = GetResource(file);
+	infile = fopen(resfile.c_str(), "rb");
 #else
-	infile = fopen(file, "rb")
+	infile = fopen(file, "rb");
 #endif
 
 	if (infile == nullptr)
@@ -2899,14 +3094,16 @@ bool GLCreateComputeProgramFromFile(const char* csfile, OpenGLEffect** effect, c
 	return true;
 }
 
-void GLRenderText(const std::string& str, uint32_t tex, GLsizei width, GLsizei height)
+void GLRenderText(const std::string& str, GLuint tex, GLsizei width, GLsizei height)
 {
 #ifdef _WIN32
 	GLRenderTextEx(str, tex, width, height, L"Arial", 1, Gdiplus::FontStyleBold, 25);
+#elif defined(__APPLE__)
+	GLRenderTextEx(str, tex, width, height, L"Arial", true, kCTFontTraitBold, 25.0f);
 #endif
 }
 
-void GLRenderTextEx(const std::string& str, uint32_t tex, GLsizei width, GLsizei height, const WCHAR* face, bool border, int style, float emsize)
+void GLRenderTextEx(const std::string& str, GLuint tex, GLsizei width, GLsizei height, const WCHAR* face, bool border, int style, float emsize)
 {
 	if (tex == 0)
 		return;
@@ -2956,10 +3153,69 @@ void GLRenderTextEx(const std::string& str, uint32_t tex, GLsizei width, GLsizei
 
 	delete graphics;
 	delete bitmap;
+#elif defined(__APPLE__)
+	CGColorSpaceRef	colorspace		= CGColorSpaceCreateDeviceRGB();
+	CGContextRef 	cgcontext 		= CGBitmapContextCreate(NULL, width, height, 8, width * 4, colorspace, kCGImageAlphaNoneSkipLast);
+	
+	CFStringEncoding encoding = (CFByteOrderLittleEndian == CFByteOrderGetCurrent()) ? kCFStringEncodingUTF32LE : kCFStringEncodingUTF32BE;
+	int facelen = (int)wcslen(face);
+
+	CFStringRef		font_name		= CFStringCreateWithBytes(NULL, (const UInt8*)face, (facelen * sizeof(wchar_t)), encoding, false);
+	//CFStringRef 	font_name 		= CFStringCreateWithCString(NULL, face, kCFStringEncodingMacRoman);
+	
+	CTFontRef 		basefont		= CTFontCreateWithName(font_name, emsize, NULL);
+	CTFontRef		font			= CTFontCreateCopyWithSymbolicTraits(basefont, emsize, NULL, style, style);
+	CGColorRef 		strokecolor		= CGColorCreateGenericRGB(0, 0, 0, 1);
+	CGColorRef 		fillcolor 		= CGColorCreateGenericRGB(1, 1, 1, 1);
+	
+	CFStringRef 	keys[] 			= { kCTFontAttributeName, kCTForegroundColorAttributeName };
+	CFTypeRef 		values[] 		= { font, fillcolor };
+	CFDictionaryRef	attributes		= CFDictionaryCreate(kCFAllocatorDefault, (const void**)&keys, (const void**)&values, sizeof(keys) / sizeof(keys[0]), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+	
+	CFRelease(font_name);
+	CFRelease(font);
+	CFRelease(basefont);
+	CGColorRelease(strokecolor);
+	CGColorRelease(fillcolor);
+	
+	CGRect					rect		= CGRectMake(0, 0, width, height);
+	CGMutablePathRef		path		= CGPathCreateMutable();
+	
+	CGPathAddRect(path, NULL, rect);
+	
+	// draw text to CG context
+	CFStringRef				cfstr		= CFStringCreateWithBytes(kCFAllocatorDefault, (const UInt8*)str.c_str (), str.length() * sizeof(char), kCFStringEncodingUTF8, false);
+	CFAttributedStringRef	attrstr		= CFAttributedStringCreate(kCFAllocatorDefault, cfstr, attributes);
+	CTFramesetterRef		framesetter	= CTFramesetterCreateWithAttributedString((CFAttributedStringRef)attrstr);
+	CTFrameRef				frame		= CTFramesetterCreateFrame(framesetter, CFRangeMake(0, CFAttributedStringGetLength(attrstr)), path, NULL);
+
+	//CGContextSetStrokeColorWithColor(cgcontext, stroke);
+	//CGContextSetFillColorWithColor(cgcontext, stroke);
+	//CGContextSetTextDrawingMode(cgcontext, kCGTextFillStroke);
+	
+	CGContextSetTextPosition(cgcontext, 0.0f, height - emsize);
+	CTFrameDraw(frame, cgcontext);
+	
+	// copy to texture
+	void* data = CGBitmapContextGetData(cgcontext);
+	
+	glBindTexture(GL_TEXTURE_2D, tex);
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, data);
+	
+	// clean up
+	CFRelease(frame);
+	CFRelease(path);
+	CFRelease(framesetter);
+	CFRelease(cfstr);
+
+	CGColorSpaceRelease(colorspace);
+	CGContextRelease(cgcontext);
 #endif
 }
 
-void GLSetTexture(GLenum unit, GLenum target, uint32_t texture)
+void GLSetTexture(GLenum unit, GLenum target, GLuint texture)
 {
 	glActiveTexture(unit);
 	glBindTexture(target, texture);

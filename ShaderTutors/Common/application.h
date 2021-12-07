@@ -20,6 +20,8 @@ enum GraphicsAPI
 	GraphicsAPIOpenGLDeprecated,	// compatibility profile
 	GraphicsAPIDirect3D9,
 	GraphicsAPIDirect3D10,
+	GraphicsAPIDirect3D11,
+	GraphicsAPIDirect2D,
 	GraphicsAPIVulkan,
 	GraphicsAPIMetal
 };
@@ -114,9 +116,11 @@ public:
 	virtual uint32_t GetClientWidth() const = 0;
 	virtual uint32_t GetClientHeight() const = 0;
 	
+	virtual void* GetHandle() const = 0;
 	virtual void* GetDriverInterface() const = 0;
 	virtual void* GetLogicalDevice() const = 0;
 	virtual void* GetSwapChain() const = 0;
+	virtual void* GetDeviceContext() const = 0;
 
 	static Application* Create(uint32_t width, uint32_t height);
 };

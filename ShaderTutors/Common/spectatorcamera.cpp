@@ -14,6 +14,7 @@ SpectatorCamera::SpectatorCamera()
 	speed		= MOVEMENT_SPEED;
 	state		= 0;
 	finished	= true;
+	inertial	= true;
 
 	anglecurve.Set(0, 0, 0);
 	positioncurve.Set(0, 1.8f, 0);
@@ -102,7 +103,7 @@ void SpectatorCamera::Update(float dt)
 
 	if (state != 0)
 		finished = false;
-	else if (Math::Vec3Dot(diff, diff) < 1e-8f)
+	else if (!inertial || Math::Vec3Dot(diff, diff) < 1e-8f)
 		finished = true;
 
 	anglecurve.Advance(diff);
@@ -140,8 +141,13 @@ void SpectatorCamera::Animate(float alpha)
 {
 	Math::Matrix yaw, pitch;
 
-	anglecurve.Smooth(smoothedangles, alpha);
-	positioncurve.Smooth(smoothedposition, alpha);
+	if (inertial) {
+		anglecurve.Smooth(smoothedangles, alpha);
+		positioncurve.Smooth(smoothedposition, alpha);
+	} else {
+		smoothedangles = targetangles;
+		smoothedposition = Math::Vector3(positioncurve[0], positioncurve[1], positioncurve[2]);
+	}
 
 	// recalculate view matrix
 	Math::MatrixRotationAxis(yaw, smoothedangles[0], 0, 1, 0);

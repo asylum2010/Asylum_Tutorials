@@ -9,9 +9,9 @@
 
 out vec4 my_FragColor0;
 
-layout(rgba16f, binding = 1) uniform sampler2D perlin;
-layout(binding = 2) uniform samplerCube envmap;
-layout(binding = 3) uniform sampler2D gradients;
+layout (binding = 1) uniform sampler2D perlin;
+layout (binding = 2) uniform samplerCube envmap;
+layout (binding = 3) uniform sampler2D gradients;
 
 uniform vec4 uvParams;
 uniform vec2 perlinOffset;

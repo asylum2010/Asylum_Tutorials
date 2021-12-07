@@ -1,7 +1,7 @@
 
 #version 430
 
-layout(location = 2) uniform vec2 pointSize;
+uniform vec2 pointSize;
 
 layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;

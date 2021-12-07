@@ -477,9 +477,9 @@ bool InitScene()
 	materials.insert({ "White", new PBRMaterial(L"White wall", Math::Color(1, 1, 1, 1), 1.0f, 0, nullptr) });
 
 	materials.insert({ "BlackPlastic", new PBRMaterial(L"Black plastic", Math::Color(0, 0, 0, 1), 0.1f, 0, nullptr) });
-	materials.insert({ "BlackLeather", new PBRMaterial(L"Black leather", Math::Color(6.2e-3f, 5.14e-3f, 7.08e-3f, 1), 0.55f, 0, nullptr) });
+	materials.insert({ "BlackLeather", new PBRMaterial(L"Black leather", Math::Color(6.2e-3f, 5.14e-3f, 7.08e-3f, 1), 0.3f, 0, nullptr) });
 
-	materials.insert({ "DarkGreyPlastic", new PBRMaterial(L"Dark grey plastic", Math::Color(6.2e-3f, 6.2e-3f, 6.2e-3f, 1), 0.55f, 0, nullptr) });
+	materials.insert({ "DarkGreyPlastic", new PBRMaterial(L"Dark grey plastic", Math::Color(6.2e-3f, 6.2e-3f, 6.2e-3f, 1), 0.3f, 0, nullptr) });
 	materials.insert({ "WhitePlastic", new PBRMaterial(L"White plastic", Math::Color(1, 1, 1, 1), 0.05f, 0, nullptr) });
 
 	materials.insert({ "TV", new PBRMaterial(L"TV", Math::Color(0, 0, 0, 1), 0, 0, "../../Media/Textures/scarlett.jpg") });
@@ -490,12 +490,12 @@ bool InitScene()
 	materials.insert({ "WhiteBoard", new PBRMaterial(L"White board", Math::Color(1, 1, 1, 1), 1, 0, nullptr) });
 
 	materials.insert({ "BlueRubber", new PBRMaterial(L"Blue rubber (MERL)", Math::Color(0.05f, 0.08f, 0.17f, 1), 0.65f, 0, nullptr) });
-	materials.insert({ "RedPlastic", new PBRMaterial(L"Red specular plastic (MERL)", Math::Color(0.26f, 0.05f, 0.01f, 1), 0.08f, 0, nullptr) });
+	materials.insert({ "RedPlastic", new PBRMaterial(L"Red specular plastic (MERL)", Math::Color(0.26f, 0.05f, 0.01f, 1), 0.02f, 0, nullptr) });
 	materials.insert({ "YellowPaint", new PBRMaterial(L"Yellow paint (MERL)", Math::Color(0.32f, 0.22f, 0.05f, 1), 0.68f, 0, nullptr) });
 
 	materials.insert({ "Paint1", new PBRMaterial(L"Car paint", Math::Color(1.0f, 0.2f, 0.0f, 1), 0.1f, 0.5f, nullptr) });
 	materials.insert({ "Paint2", new PBRMaterial(L"Car paint black", Math::Color(0.0f, 0.0f, 0.0f, 1), 0.1f, 0.5f, nullptr) });
-	materials.insert({ "Chromium", new PBRMaterial(L"Chromium", Math::Color(0.549f, 0.556f, 0.554f, 1), 0.2f, 1, nullptr) });
+	materials.insert({ "Chromium", new PBRMaterial(L"Chromium", Math::Color(0.549f, 0.556f, 0.554f, 1), 0.1f, 1, nullptr) });
 	materials.insert({ "Glass", new PBRMaterial(L"Glass", Math::Color(0.03f, 0.03f, 0.03f, 0.25f), 0.05f, 0, nullptr, true) });
 	materials.insert({ "BlackPolymer", new PBRMaterial(L"Black polymer", Math::Color(0, 0, 0, 1), 0.5f, 0, nullptr) });
 	materials.insert({ "GreyPolymer", new PBRMaterial(L"Grey polymer", Math::Color(0.01f, 0.01f, 0.01f, 1), 1.0f, 0, nullptr) });
