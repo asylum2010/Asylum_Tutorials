@@ -20,12 +20,14 @@ struct CombinedUniformData
 	// byte offset 0
 	struct BlinnphongUniformData {
 		Math::Matrix world;
+		Math::Matrix worldinv;
 		Math::Matrix viewproj;
 		Math::Vector4 lightpos;
 		Math::Vector4 eyepos;
-	} blinnphonguniforms;	// 160 B
+		Math::Vector4 uvscale;
+	} blinnphonguniforms;	// 240 B
 	
-	Math::Vector4 padding1[6];	// 96 B
+	Math::Vector4 padding1[1];	// 16 B
 	
 	// byte offset 256
 	struct ColordGridUniformData {
@@ -214,10 +216,15 @@ void SynchronizeWithWait(id<MTLCommandBuffer>* commandbuffer, MTLRenderPassDescr
 		[computeencoder endEncoding];
 	}
 	
+	Math::Matrix worldinv;
+	Math::MatrixInverse(worldinv, world);
+	
 	uniforms->blinnphonguniforms.world = world;
+	uniforms->blinnphonguniforms.worldinv = worldinv;
 	uniforms->blinnphonguniforms.viewproj = viewproj;
 	uniforms->blinnphonguniforms.eyepos = Math::Vector4(eye, 1);
 	uniforms->blinnphonguniforms.lightpos = Math::Vector4(6, 3, 10, 1);
+	uniforms->blinnphonguniforms.uvscale = Math::Vector4(1, 1, 0, 0);
 	
 	id<MTLRenderCommandEncoder> encoder = [*commandbuffer renderCommandEncoderWithDescriptor:renderpassdesc];
 	{
@@ -243,10 +250,15 @@ void SynchronizeWithOrphaning(id<MTLCommandBuffer> commandbuffer, id<MTLRenderCo
 	
 	CombinedUniformData* uniforms = ((CombinedUniformData*)[uniformbuffer contents] + currentframe * UNIFORM_COPIES + currentcopy);
 	
+	Math::Matrix worldinv;
+	Math::MatrixInverse(worldinv, world);
+	
 	uniforms->blinnphonguniforms.world = world;
+	uniforms->blinnphonguniforms.worldinv = worldinv;
 	uniforms->blinnphonguniforms.viewproj = viewproj;
 	uniforms->blinnphonguniforms.eyepos = Math::Vector4(eye, 1);
 	uniforms->blinnphonguniforms.lightpos = Math::Vector4(6, 3, 10, 1);
+	uniforms->blinnphonguniforms.uvscale = Math::Vector4(1, 1, 0, 0);
 	
 	[encoder setVertexBuffer:uniformbuffer offset:((currentframe * UNIFORM_COPIES + currentcopy) * sizeof(CombinedUniformData)) atIndex:1];
 	[encoder setFragmentTexture:texture atIndex:0];

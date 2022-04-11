@@ -43,7 +43,7 @@ public:
 	void* GetDriverInterface() const override		{ return nullptr; }
 	void* GetLogicalDevice() const override;
 	void* GetSwapChain() const override;
-	void* GetDeviceContext() const override;		{ return nullptr; }
+	void* GetDeviceContext() const override			{ return nullptr; }
 	
 	//specific
 	NSString* GetTitle() const						{ return windowtitle; }

@@ -20,7 +20,8 @@
 // --- Enums ------------------------------------------------------------------
 
 enum MetalMeshFlags {
-	MTL_MESH_32BIT = 1
+	MTL_MESH_32BIT = 1,
+	MTL_MESH_SYSTEMMEM = 2
 };
 
 // --- Structures -------------------------------------------------------------
@@ -113,6 +114,7 @@ public:
 	static MetalMesh* LoadFromQM(id<MTLDevice> device, id<MTLCommandQueue> queue, const char* file, id<MTLBuffer> buffer = nil, uint64_t offset = 0);
 	
 	MetalMesh(id<MTLDevice> device, uint32_t numvertices, uint32_t numindices, uint32_t vertexstride, id<MTLBuffer> buffer = nil, uint64_t offset = 0, uint32_t flags = 0);
+	MetalMesh(id<MTLDevice> device, uint32_t numvertices, uint32_t numindices, uint32_t vertexstride, MTLVertexDescriptor* layout, uint32_t flags = 0);
 	~MetalMesh();
 	
 	void Draw(id<MTLRenderCommandEncoder> encoder);
@@ -155,6 +157,31 @@ public:
 	
 	void Draw(id<MTLRenderCommandEncoder> encoder);
 	void SetTextureMatrix(const Math::Matrix& m);
+};
+
+/**
+ * \brief Helps with small data management.
+ */
+class MetalDynamicRingBuffer
+{
+	typedef void (^RestartHandler)();
+	
+private:
+	id<MTLDevice>	mtldevice;
+	id<MTLBuffer>	buffer;
+	uint64_t		totalsize;
+	uint64_t		offset;
+	uint32_t		changecount;	// expected changes per flight
+	uint32_t		stride;
+	uint8_t			flightcount;
+	
+public:
+	MetalDynamicRingBuffer(id<MTLDevice> device, uint32_t datastride, uint8_t numflights, uint32_t numchanges);
+	~MetalDynamicRingBuffer();
+	
+	uint64_t MapNextRange(uint8_t flight, void** result);
+	
+	inline id<MTLBuffer> GetBuffer()	{ return buffer; }
 };
 
 // --- Functions --------------------------------------------------------------

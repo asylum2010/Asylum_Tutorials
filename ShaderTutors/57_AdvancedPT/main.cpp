@@ -136,7 +136,7 @@ static bool LoadScene(const std::string& filepath)
 	fread(&nummaterials, sizeof(uint32_t), 1, infile);
 	fread(&numoverrides, sizeof(uint32_t), 1, infile);
 	
-	assert(numoverrides == model->GetNumSubsets());
+	assert(numoverrides >= model->GetNumSubsets());
 	overridetable = new uint32_t[numoverrides];
 
 	//if (numenvmaps > 0) {
@@ -258,18 +258,6 @@ bool InitScene()
 	screenwidth = app->GetClientWidth();
 	screenheight = app->GetClientHeight();
 
-	GLint maximageunits = 0;
-	GLint maxcomputeimageunits = 0;
-
-	glGetIntegerv(GL_MAX_IMAGE_UNITS, &maximageunits);
-	glGetIntegerv(GL_MAX_COMPUTE_IMAGE_UNIFORMS, &maxcomputeimageunits);
-	
-	// TODO: put textures to lower binding points, buffers to higher
-	if (maxcomputeimageunits < 10) {
-		MYERROR("InitScene(): Implementation currently uses flat binding points and requires at least 10 image binding units");
-		return false;
-	}
-
 	glClearColor(0.0f, 0.125f, 0.3f, 1.0f);
 	glClearDepth(1.0);
 
@@ -297,10 +285,10 @@ bool InitScene()
 
 	bdpathtracer->Introspect();
 
-	bdpathtracer->SetInt("accumTarget", 6);
-	bdpathtracer->SetInt("counterTarget", 7);
-	bdpathtracer->SetInt("renderTarget", 8);
-	bdpathtracer->SetInt("albedoTextures", 9);
+	bdpathtracer->SetInt("accumTarget", 0);
+	bdpathtracer->SetInt("counterTarget", 1);
+	bdpathtracer->SetInt("renderTarget", 2);
+	bdpathtracer->SetInt("albedoTextures", 3);
 
 	GLCreateEffectFromFile("../../Media/ShadersGL/renderbvh.vert", 0, 0, 0, "../../Media/ShadersGL/renderbvh.frag", &debugdraw);
 
@@ -513,18 +501,18 @@ void Render(float alpha, float elapsedtime)
 
 	bdpathtracer->Begin();
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, model->GetVertexBuffer());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, model->GetIndexBuffer());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, accelstructure->GetHierarchy());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, accelstructure->GetTriangleIDs());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, lightbuffer);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, materialbuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, model->GetVertexBuffer());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, model->GetIndexBuffer());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, accelstructure->GetHierarchy());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, accelstructure->GetTriangleIDs());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, lightbuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, materialbuffer);
 
-		glBindImageTexture(6, accumtarget, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-		glBindImageTexture(7, countertarget, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RG32F);
-		glBindImageTexture(8, rendertarget, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		glBindImageTexture(0, accumtarget, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+		glBindImageTexture(1, countertarget, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RG32F);
+		glBindImageTexture(2, rendertarget, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-		GLSetTexture(GL_TEXTURE9, GL_TEXTURE_2D_ARRAY, textures);
+		GLSetTexture(GL_TEXTURE3, GL_TEXTURE_2D_ARRAY, textures);
 
 		glDispatchCompute(screenwidth / 16, screenheight / 16, 1);
 	}

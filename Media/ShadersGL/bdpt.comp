@@ -5,31 +5,35 @@
 #include "pbr_common.head"
 #include "raytrace_common.head"
 
-layout (std430, binding = 0) readonly buffer VertexBuffer {
+layout (rgba32f, binding = 0) uniform restrict image2D accumTarget;
+layout (rg32f, binding = 1) uniform restrict image2D counterTarget;
+layout (rgba32f, binding = 2) uniform restrict writeonly image2D renderTarget;
+
+layout (binding = 3) uniform sampler2DArray albedoTextures;
+
+layout (std430, binding = 4) readonly buffer VertexBuffer {
 	PackedVertex data[];
 } vertices;
 
-layout (std430, binding = 1) readonly buffer IndexBuffer {
+layout (std430, binding = 5) readonly buffer IndexBuffer {
 	uint data[];
 } indices;
 
-layout (std430, binding = 2) readonly buffer BVHierarchy {
+layout (std430, binding = 6) readonly buffer BVHierarchy {
 	BVHNode data[];
 } hierarchy;
 
-layout (std430, binding = 3) readonly buffer TriangleIDs {
+layout (std430, binding = 7) readonly buffer TriangleIDs {
 	uvec2 data[];
 } triangleIDs;
 
-layout (std430, binding = 4) readonly buffer AreaLights {
+layout (std430, binding = 8) readonly buffer AreaLights {
 	AreaLight data[];
 } lights;
 
-layout (std430, binding = 5) readonly buffer Materials {
+layout (std430, binding = 9) readonly buffer Materials {
 	BSDFInfo data[];
 } materials;
-
-layout (binding = 9) uniform sampler2DArray albedoTextures;
 
 #include "bsdf_common.head"
 #include "accelstructure.head"
@@ -50,10 +54,6 @@ uniform vec2 texelSize;
 
 uniform float time;
 uniform float camArea;
-
-layout (rgba32f, binding = 6) uniform restrict image2D accumTarget;
-layout (rg32f, binding = 7) uniform restrict image2D counterTarget;
-layout (rgba32f, binding = 8) uniform restrict writeonly image2D renderTarget;
 
 // NOTE: placed in SVU temp registers (GCN has 4096 per SVU)
 PathVertex camerapath[MAX_DEPTH];

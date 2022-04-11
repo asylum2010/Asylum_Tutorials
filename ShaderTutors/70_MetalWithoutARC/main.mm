@@ -17,12 +17,14 @@ struct CombinedUniformData
 	// byte offset 0
 	struct BlinnphongUniformData {
 		Math::Matrix world;
+		Math::Matrix worldinv;
 		Math::Matrix viewproj;
 		Math::Vector4 lightpos;
 		Math::Vector4 eyepos;
-	} blinnphonguniforms;	// 160 B
+		Math::Vector4 uvscale;
+	} blinnphonguniforms;	// 240 B
 	
-	Math::Vector4 padding1[6];	// 96 B
+	Math::Vector4 padding1[1];	// 16 B
 	
 	// byte offset 256
 	struct ColordGridUniformData {
@@ -162,7 +164,7 @@ void Render(float alpha, float elapsedtime)
 {
 	static float time = 0;
 	
-	Math::Matrix world, view, proj;
+	Math::Matrix world, worldinv, view, proj;
 	Math::Matrix viewproj, tmp;
 	Math::Vector3 eye;
 	
@@ -201,10 +203,14 @@ void Render(float alpha, float elapsedtime)
 	Math::MatrixRotationAxis(tmp, Math::DegreesToRadians(fmodf(time * 20.0f, 360.0f)), 0, 1, 0);
 	Math::MatrixMultiply(world, world, tmp);
 
+	Math::MatrixInverse(worldinv, world);
+	
 	uniforms->blinnphonguniforms.world = world;
+	uniforms->blinnphonguniforms.worldinv = worldinv;
 	uniforms->blinnphonguniforms.viewproj = viewproj;
 	uniforms->blinnphonguniforms.eyepos = Math::Vector4(eye, 1);
 	uniforms->blinnphonguniforms.lightpos = Math::Vector4(6, 3, 10, 1);
+	uniforms->blinnphonguniforms.uvscale = Math::Vector4(1, 1, 0, 0);
 	
 	uniforms->colorgriduniforms.time.x = time;
 	time += elapsedtime;

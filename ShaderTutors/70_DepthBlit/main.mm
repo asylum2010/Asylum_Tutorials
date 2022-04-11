@@ -17,12 +17,14 @@ struct CombinedUniformData
 	// byte offset 0
 	struct BlinnphongUniformData {
 		Math::Matrix world;
+		Math::Matrix worldinv;
 		Math::Matrix viewproj;
 		Math::Vector4 lightpos;
 		Math::Vector4 eyepos;
-	} blinnphonguniforms;	// 160 B
+		Math::Vector4 uvscale;
+	} blinnphonguniforms;	// 240 B
 	
-	Math::Vector4 padding1[6];	// 96 B
+	Math::Vector4 padding1[1];	// 16 B
 	
 	// byte offset 256
 	struct ColordGridUniformData {
@@ -235,7 +237,7 @@ void Render(float alpha, float elapsedtime)
 {
 	static float time = 0;
 	
-	Math::Matrix world, view, proj;
+	Math::Matrix world, worldinv, view, proj;
 	Math::Matrix viewproj, tmp;
 	Math::Vector3 eye;
 	
@@ -290,10 +292,14 @@ void Render(float alpha, float elapsedtime)
 		// render first teapot (uniform offsets: 0, 1, 2)
 		world._41 -= 0.75f;
 		
+		Math::MatrixInverse(worldinv, world);
+		
 		uniforms->blinnphonguniforms.world = world;
+		uniforms->blinnphonguniforms.worldinv = worldinv;
 		uniforms->blinnphonguniforms.viewproj = viewproj;
 		uniforms->blinnphonguniforms.eyepos = Math::Vector4(eye, 1);
 		uniforms->blinnphonguniforms.lightpos = Math::Vector4(6, 3, 10, 1);
+		uniforms->blinnphonguniforms.uvscale = Math::Vector4(1, 1, 0, 0);
 		
 		renderpassdesc.colorAttachments[0].texture = bottomlayer;
 		renderpassdesc.colorAttachments[0].loadAction = MTLLoadActionClear;
@@ -346,10 +352,14 @@ void Render(float alpha, float elapsedtime)
 		
 		world._41 += 1.5f;
 		
+		Math::MatrixInverse(worldinv, world);
+		
 		uniforms->blinnphonguniforms.world = world;
+		uniforms->blinnphonguniforms.worldinv = worldinv;
 		uniforms->blinnphonguniforms.viewproj = viewproj;
 		uniforms->blinnphonguniforms.eyepos = Math::Vector4(eye, 1);
 		uniforms->blinnphonguniforms.lightpos = Math::Vector4(6, 3, 10, 1);
+		uniforms->blinnphonguniforms.uvscale = Math::Vector4(1, 1, 0, 0);
 		
 		// NOTE: load the blitted depth texture
 		renderpassdesc.colorAttachments[0].texture = feedbacklayer;

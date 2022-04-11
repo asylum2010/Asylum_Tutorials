@@ -161,7 +161,7 @@ MetalMesh::MetalMesh(id<MTLDevice> device, uint32_t numvertices, uint32_t numind
 		
 		mappedvdata = mappedidata = (uint8_t*)[buffer contents];
 	} else {
-		totalsize += numindices * (indexformat == MTLIndexTypeUInt16 ? 2 : 4);
+		totalsize += numindices * istride;
 
 		vertexbuffer = [device newBufferWithLength:numvertices * vertexstride options:MTLResourceStorageModePrivate];
 		indexbuffer = [device newBufferWithLength:numindices * istride options:MTLResourceStorageModePrivate];
@@ -192,6 +192,68 @@ MetalMesh::MetalMesh(id<MTLDevice> device, uint32_t numvertices, uint32_t numind
 	
 	vertexlayout.layouts[0].stride = sizeof(GeometryUtils::CommonVertex);
 	vertexlayout.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+	
+	subsettable = new MetalAttributeRange[1];
+	materials = new MetalMaterial[1];
+	
+	subsettable[0].attribId = 0;
+	subsettable[0].enabled = true;
+	subsettable[0].indexCount = numindices;
+	subsettable[0].indexStart = 0;
+	subsettable[0].primitiveType = MTLPrimitiveTypeTriangle;
+	subsettable[0].vertexCount = numvertices;
+	subsettable[0].vertexStart = 0;
+}
+
+MetalMesh::MetalMesh(id<MTLDevice> device, uint32_t numvertices, uint32_t numindices, uint32_t vertexstride, MTLVertexDescriptor* layout, uint32_t flags)
+{
+	totalsize		= numvertices * vertexstride;
+	vertexcount		= numvertices;
+	indexcount		= numindices;
+	vstride			= vertexstride;
+	baseoffset		= 0;
+	inherited		= false;
+	numsubsets		= 1;
+	mappedvdata		= nullptr;
+	mappedidata		= nullptr;
+	vertexlayout	= layout;
+	
+	if (numvertices > 0xffff || (flags & MTL_MESH_32BIT))
+		indexformat = MTLIndexTypeUInt32;
+	else
+		indexformat = MTLIndexTypeUInt16;
+	
+	uint32_t istride = ((indexformat == MTLIndexTypeUInt16) ? 2 : 4);
+	
+	totalsize += numindices * istride;
+
+	if ((flags & MTL_MESH_SYSTEMMEM) == 0) {
+		vertexbuffer = [device newBufferWithLength:numvertices * vertexstride options:MTLResourceStorageModePrivate];
+		indexbuffer = [device newBufferWithLength:numindices * istride options:MTLResourceStorageModePrivate];
+	} else {
+		// system memory only
+		vertexbuffer = nil;
+		indexbuffer = nil;
+	}
+	
+	stagingvertexbuffer = [device newBufferWithLength:numvertices * vertexstride options:MTLResourceStorageModeShared|MTLResourceCPUCacheModeDefaultCache];
+	stagingindexbuffer = [device newBufferWithLength:numindices * istride options:MTLResourceStorageModeShared|MTLResourceCPUCacheModeDefaultCache];
+	
+	mappedvdata = (uint8_t*)[stagingvertexbuffer contents];
+	mappedidata = (uint8_t*)[stagingindexbuffer contents];
+	
+	indexoffset = 0;
+	
+	subsettable = new MetalAttributeRange[1];
+	materials = new MetalMaterial[1];
+	
+	subsettable[0].attribId = 0;
+	subsettable[0].enabled = true;
+	subsettable[0].indexCount = numindices;
+	subsettable[0].indexStart = 0;
+	subsettable[0].primitiveType = MTLPrimitiveTypeTriangle;
+	subsettable[0].vertexCount = numvertices;
+	subsettable[0].vertexStart = 0;
 }
 
 MetalMesh::~MetalMesh()
@@ -375,6 +437,9 @@ MTLVertexDescriptor* MetalMesh::GetVertexLayout(NSArray* signature)
 
 void MetalMesh::UploadToVRAM(id<MTLCommandBuffer> commandbuffer)
 {
+	if (vertexbuffer == nil || indexbuffer == nil)
+		return;
+	
 	if (!inherited && (mappedvdata != nullptr || mappedidata != nullptr)) {
 		mappedvdata = mappedidata = nullptr;
 	}
@@ -467,6 +532,9 @@ MetalMesh* MetalMesh::LoadFromQM(id<MTLDevice> device, id<MTLCommandQueue> queue
 	
 	void* idata = mesh->GetIndexBufferPointer();
 	fread(idata, istride, numindices, infile);
+	
+	delete[] mesh->subsettable;
+	delete[] mesh->materials;
 	
 	// subset and material info
 	mesh->numsubsets = numsubsets;
@@ -621,6 +689,45 @@ void MetalScreenQuad::Draw(id<MTLRenderCommandEncoder> encoder)
 void MetalScreenQuad::SetTextureMatrix(const Math::Matrix& m)
 {
 	transform = m;
+}
+
+// --- MetalDynamicRingBuffer impl --------------------------------------------
+
+MetalDynamicRingBuffer::MetalDynamicRingBuffer(id<MTLDevice> device, uint32_t datastride, uint8_t numflights, uint32_t numchanges)
+{
+	totalsize = datastride * numflights * numchanges;
+	buffer = [device newBufferWithLength:totalsize options:MTLStorageModeShared|MTLResourceCPUCacheModeWriteCombined];
+	
+	mtldevice		= device;
+	stride			= datastride;
+	changecount		= numchanges;
+	offset			= 0;
+	flightcount		= numflights;
+}
+
+MetalDynamicRingBuffer::~MetalDynamicRingBuffer()
+{
+	mtldevice = nil;
+	buffer = nil;
+}
+
+uint64_t MetalDynamicRingBuffer::MapNextRange(uint8_t flight, void** result)
+{
+	// TODO: find a way to detect when no orphaning is needed
+	(void)flight;
+	
+	if (offset + stride > totalsize) {
+		// just orphan the buffer (driver will drop it when finishes)
+		buffer = [mtldevice newBufferWithLength:totalsize options:MTLStorageModeShared|MTLResourceCPUCacheModeWriteCombined];
+		offset = stride;
+	} else {
+		offset += stride;
+	}
+	
+	uint8_t* bytedata = (uint8_t*)[buffer contents];
+	(*result) = bytedata + (offset - stride);
+	
+	return offset - stride;
 }
 
 // --- Functions impl ---------------------------------------------------------
@@ -792,57 +899,127 @@ id<MTLTexture> MetalCreateTextureFromDDS(id<MTLDevice> device, id<MTLCommandQueu
 		return nil;
 	}
 	
-	if (info.Type != DDSImageTypeCube) {
-		printf("MetalCreateTextureFromDDS(): Only cubemaps are supported for now\n");
-		free(info.Data);
-		
-		return nil;
-	}
-	
-	if (info.Format != MTLPixelFormatRGBA16Float) {
-		printf("MetalCreateTextureFromDDS(): Only RGBA16Float format is supported for now\n");
-		free(info.Data);
-		
-		return nil;
-	}
-	
-	desc.textureType		= MTLTextureTypeCube;
-	desc.pixelFormat		= MTLPixelFormatRGBA16Float;	// TODO:
-	desc.width				= info.Width;
-	desc.height				= info.Height;
-	desc.depth				= 1;
-	desc.mipmapLevelCount	= info.MipLevels;
-	desc.arrayLength		= 1;
-	desc.cpuCacheMode		= MTLCPUCacheModeWriteCombined;
-	desc.storageMode		= MTLStorageModeManaged;
-	desc.usage				= MTLTextureUsageShaderRead;
-	desc.sampleCount		= 1;
-	
-	[desc setResourceOptions:(desc.cpuCacheMode << MTLResourceCPUCacheModeShift) | (desc.storageMode << MTLResourceStorageModeShift)];
-	
-	ret = [device newTextureWithDescriptor:desc];
-	
-	MTLRegion region;
-	size_t facesize;
-	size_t offset = 0;
+	if (info.Type == DDSImageType2D) {
+		bool compressed = (info.Format == MTLPixelFormatBC1_RGBA || info.Format == MTLPixelFormatBC3_RGBA);
+		uint32_t bytes = 4;
+		uint32_t format = info.Format;
 
-	region.origin = { 0, 0, 0 };
-	region.size.depth = 1;
-	
-	for (int i = 0; i < 6; ++i) {
-		for (int j = 0; j < info.MipLevels; ++j) {
-			size_t size = Math::Max<size_t>(1, info.Width >> j);
-			facesize = size * size * 8;
+		if (info.Format == MTLPixelFormatRG32Float) {
+			bytes = 8;
+		} else if (info.Format == MTLPixelFormatRG16Float) {
+			bytes = 4;
+		} else if (info.Format == MTLPixelFormatRGBA8Snorm) {
+			// this is a cheat for now...
+			format = MTLPixelFormatBGRA8Unorm;
+			bytes = 4;
+		} else if (info.Format == MTLPixelFormatBGRA8Unorm || info.Format == MTLPixelFormatRGBA8Unorm) {
+			if (srgb) {
+				// see the enum
+				format = info.Format + 1;
+			}
 
-			region.size.width = region.size.height = size;
+			bytes = 3;
 			
-			size_t pitch = size * 8;
-			size_t slicepitch = pitch * size;
-			
-			[ret replaceRegion:region mipmapLevel:j slice:i withBytes:((uint8_t*)info.Data + offset) bytesPerRow:pitch bytesPerImage:slicepitch];
-			
-			offset += facesize;
+			// TODO: have to pad the data
+		} else if (compressed && srgb) {
+			format = info.Format + 1;
 		}
+		
+		desc.textureType		= MTLTextureType2D;
+		desc.pixelFormat		= (MTLPixelFormat)format;
+		desc.width				= info.Width;
+		desc.height				= info.Height;
+		desc.depth				= 1;
+		desc.mipmapLevelCount	= info.MipLevels;
+		desc.arrayLength		= 1;
+		desc.cpuCacheMode		= MTLCPUCacheModeWriteCombined;
+		desc.storageMode		= MTLStorageModeManaged;
+		desc.usage				= MTLTextureUsageShaderRead;
+		desc.sampleCount		= 1;
+		
+		[desc setResourceOptions:(desc.cpuCacheMode << MTLResourceCPUCacheModeShift)|(desc.storageMode << MTLResourceStorageModeShift)];
+		ret = [device newTextureWithDescriptor:desc];
+		
+		MTLRegion region;
+		uint32_t pow2w = Math::NextPow2(info.Width);
+		uint32_t pow2h = Math::NextPow2(info.Height);
+		uint32_t width = info.Width;
+		uint32_t height = info.Height;
+		uint32_t offset = 0;
+		uint32_t mipsize;
+		
+		region.origin = { 0, 0, 0 };
+		region.size.depth = 1;
+		
+		for (int j = 0; j < info.MipLevels; ++j) {
+			if (compressed)
+				mipsize = GetCompressedLevelSize(info.Width, info.Height, j, info.Format);
+			else
+				mipsize = info.Width * info.Height * bytes;
+
+			region.size.width = width;
+			region.size.height = height;
+			
+			size_t pitch = width * bytes;
+			size_t slicepitch = pitch * height;
+			
+			[ret replaceRegion:region mipmapLevel:j slice:0 withBytes:((uint8_t*)info.Data + offset) bytesPerRow:pitch bytesPerImage:slicepitch];
+			
+			offset += mipsize;
+			
+			width = (pow2w >> (j + 1));
+			height = (pow2h >> (j + 1));
+		}
+	} else if (info.Type == DDSImageTypeCube) {
+		if (info.Format != MTLPixelFormatRGBA16Float) {
+			printf("MetalCreateTextureFromDDS(): Only RGBA16Float format is supported for cube maps\n");
+			free(info.Data);
+
+			return nil;
+		}
+		
+		desc.textureType		= MTLTextureTypeCube;
+		desc.pixelFormat		= (MTLPixelFormat)info.Format;
+		desc.width				= info.Width;
+		desc.height				= info.Height;
+		desc.depth				= 1;
+		desc.mipmapLevelCount	= info.MipLevels;
+		desc.arrayLength		= 1;
+		desc.cpuCacheMode		= MTLCPUCacheModeWriteCombined;
+		desc.storageMode		= MTLStorageModeManaged;
+		desc.usage				= MTLTextureUsageShaderRead;
+		desc.sampleCount		= 1;
+		
+		[desc setResourceOptions:(desc.cpuCacheMode << MTLResourceCPUCacheModeShift)|(desc.storageMode << MTLResourceStorageModeShift)];
+		ret = [device newTextureWithDescriptor:desc];
+		
+		MTLRegion region;
+		size_t facesize;
+		size_t offset = 0;
+
+		region.origin = { 0, 0, 0 };
+		region.size.depth = 1;
+		
+		for (int i = 0; i < 6; ++i) {
+			for (int j = 0; j < info.MipLevels; ++j) {
+				size_t size = Math::Max<size_t>(1, info.Width >> j);
+				facesize = size * size * 8;
+
+				region.size.width = region.size.height = size;
+				
+				size_t pitch = size * 8;
+				size_t slicepitch = pitch * size;
+				
+				[ret replaceRegion:region mipmapLevel:j slice:i withBytes:((uint8_t*)info.Data + offset) bytesPerRow:pitch bytesPerImage:slicepitch];
+				
+				offset += facesize;
+			}
+		}
+	} else {
+		printf("MetalCreateTextureFromDDS(): This texture type is not supported for now\n");
+		free(info.Data);
+
+		return nil;
 	}
 	
 	free(info.Data);

@@ -13,9 +13,11 @@ struct CommonVertex
 struct ConstantBuffer
 {
 	float4x4 matWorld;
+	float4x4 matWorldInv;
 	float4x4 matViewProj;
 	float4 lightPos;
 	float4 eyePos;
+	float4 uvScale;
 };
 
 struct VS_OUTPUT
@@ -36,10 +38,10 @@ vertex VS_OUTPUT vs_blinnphong(
 	float4 wpos = uniforms.matWorld * float4(vert.pos, 1.0);
 	
 	out.pos = uniforms.matViewProj * wpos;
-	out.wnorm = (uniforms.matWorld * float4(vert.norm, 0.0)).xyz;
+	out.wnorm = (float4(vert.norm, 0.0) * uniforms.matWorldInv).xyz;
 	out.vdir = uniforms.eyePos.xyz - wpos.xyz;
 	out.ldir = uniforms.lightPos.xyz - wpos.xyz;
-	out.tex = vert.tex;
+	out.tex = vert.tex * uniforms.uvScale.xy;
 	
 	return out;
 }

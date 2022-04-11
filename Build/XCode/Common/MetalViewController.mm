@@ -45,7 +45,7 @@ static NSPoint convertScreenToBase(NSWindow* window, NSPoint pt)
 		
 		_inputState.Button = 0;
 		_inputState.X = _inputState.Y = 0;
-		_inputState.dX = _inputState.dY = 0;
+		_inputState.dX = _inputState.dY = _inputState.dZ = 0;
 	}
 	
 	return self;
@@ -135,6 +135,47 @@ static NSPoint convertScreenToBase(NSWindow* window, NSPoint pt)
 	}
 	
 	[super rightMouseDragged:theEvent];
+}
+
+- (void)otherMouseDragged:(NSEvent*)theEvent {
+	NSPoint pos = convertScreenToBase(self.window, [NSEvent mouseLocation]);
+	
+	_inputState.Button |= MouseButtonMiddle;
+	
+	_inputState.dX = (short)[theEvent deltaX];
+	_inputState.dY = (short)[theEvent deltaY];
+	
+	_inputState.X = (short)pos.x;
+	_inputState.Y = (short)(self.bounds.size.height - pos.y);
+	
+	if (app != nullptr) {
+		if (app->MouseMoveCallback != nullptr)
+			app->MouseMoveCallback(_inputState.X, _inputState.Y, _inputState.dX, _inputState.dY);
+	}
+	
+	[super rightMouseDragged:theEvent];
+}
+
+- (void)scrollWheel:(NSEvent*)theEvent {
+	NSPoint pos = convertScreenToBase(self.window, [NSEvent mouseLocation]);
+	
+	CGFloat deltax = [theEvent deltaX];
+	CGFloat deltay = [theEvent deltaY];
+	
+	if ([theEvent hasPreciseScrollingDeltas]) {
+		deltax *= 0.1f;
+		deltay *= 0.1f;
+	}
+	
+	_inputState.X = (short)pos.x;
+	_inputState.Y = (short)(self.bounds.size.height - pos.y);
+	
+	if (app != nullptr) {
+		if (app->MouseScrollCallback != nullptr)
+			app->MouseScrollCallback(_inputState.X, _inputState.Y, deltay);
+	}
+	
+	[super scrollWheel:theEvent];
 }
 
 - (void)mouseDown:(NSEvent*)theEvent {
@@ -230,11 +271,13 @@ static NSPoint convertScreenToBase(NSWindow* window, NSPoint pt)
 }
 
 - (void)drawInMTKView:(nonnull MTKView *)view {
-	if (_app->UpdateCallback != nullptr)
-		_app->UpdateCallback(1.0f / view.preferredFramesPerSecond);
-	
-	if (_app->RenderCallback != nullptr)
-		_app->RenderCallback(0, 1.0f / view.preferredFramesPerSecond);
+	@autoreleasepool {
+		if (_app->UpdateCallback != nullptr)
+			_app->UpdateCallback(1.0f / view.preferredFramesPerSecond);
+		
+		if (_app->RenderCallback != nullptr)
+			_app->RenderCallback(0, 1.0f / view.preferredFramesPerSecond);
+	}
 }
 
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {

@@ -29,9 +29,9 @@
 
 #	define FORMAT_R8G8B8			MTLPixelFormatBGRA8Unorm
 #	define FORMAT_B8G8R8			MTLPixelFormatRGBA8Unorm
-#	define FORMAT_A8R8G8B8			MTLPixelFormatBGRA8Unorm
+#	define FORMAT_A8R8G8B8			MTLPixelFormatRGBA8Snorm	// must differentiate somehow from 3-byte formats...
 #	define FORMAT_DXT1				MTLPixelFormatBC1_RGBA
-#	define FORMAT_DXT5				MTLPixelFormatBC3_RGBA_sRGB
+#	define FORMAT_DXT5				MTLPixelFormatBC3_RGBA
 #	define FORMAT_G16R16F			MTLPixelFormatRG16Float
 #	define FORMAT_A16B16G16R16F		MTLPixelFormatRGBA16Float
 #	define FORMAT_G32R32F			MTLPixelFormatRG32Float
@@ -206,6 +206,7 @@ struct DDS_HEADER
 	DWORD dwReserved2;
 };
 
+#ifndef __clang__
 static DWORD PackRGBA_DXT1(BYTE r, BYTE g, BYTE b, BYTE a)
 {
 	return ((a << 24)|(b << 16)|(g << 8)|r);
@@ -410,6 +411,7 @@ static void BlockDecompressImageDXT5(DWORD width, DWORD height, BYTE* in, DWORD*
 		in += blockCountX * 16;
 	}
 }
+#endif
 
 uint32_t GetImageSize(uint32_t width, uint32_t height, uint32_t bytes, uint32_t miplevels)
 {

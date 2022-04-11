@@ -148,7 +148,7 @@ void OpenGLBVH::Build(OpenGLMesh* mesh, uint32_t* materialoverrides, const char*
 	numsubsets = mesh->GetNumSubsets();
 	subsets = new Subset[numsubsets];
 
-	for (GLuint i = 0; i < mesh->GetNumSubsets(); ++i) {
+	for (GLuint i = 0; i < numsubsets; ++i) {
 		subsets[i].IndexStart = subsettable[i].IndexStart;
 		subsets[i].MaterialID = ((materialoverrides == nullptr) ? i : materialoverrides[i]);
 	}
