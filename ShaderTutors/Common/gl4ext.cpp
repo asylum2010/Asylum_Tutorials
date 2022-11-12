@@ -937,7 +937,7 @@ void OpenGLEffect::QueryUniforms()
 					uniname[j] = '\0';
 			}
 
-			if (loc == -1)
+			if (loc == -1 || type == 0x1405)	// not specificed in standard, subroutine
 				continue;
 
 			AddUniform(uniname, loc, size, type);

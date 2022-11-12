@@ -23,7 +23,7 @@ layout (index = 0) subroutine(BitonicSortFunc) void BitonicSortFull(uint localID
 	shared_values[localID] = values.data[globalID];
 
 	if (globalID >= numValues)
-		shared_values[localID] = (ascending ? 2147483647 : -2147483647);
+		shared_values[localID] = ((ascending == 1) ? 2147483647 : -2147483647);
 		
 	barrier();
 

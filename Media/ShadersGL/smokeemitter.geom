@@ -14,7 +14,7 @@ layout(xfb_buffer = 0, xfb_stride = 48) out GS_OUTPUT {
 	layout(xfb_offset = 32) vec4 particleColor;
 } my_out;
 
-layout(rgba32f, binding = 0) uniform sampler2D randomTex;
+layout(binding = 0) uniform sampler2D randomTex;
 layout(location = 1) uniform float time;
 layout(location = 2) uniform float emitRate;
 
