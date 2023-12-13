@@ -27,6 +27,7 @@ GLint map_Format_Internal[] = {
 	GL_SRGB8_ALPHA8,
 	GL_RGBA8,
 	GL_SRGB8_ALPHA8,
+	GL_R16UI,
 
 	GL_DEPTH24_STENCIL8,
 	GL_DEPTH_COMPONENT32F,
@@ -56,6 +57,7 @@ GLenum map_Format_Format[] = {
 	GL_RGBA,
 	GL_BGRA,
 	GL_BGRA,
+	GL_RED_INTEGER,
 
 	GL_DEPTH_STENCIL,
 	GL_DEPTH_COMPONENT,
@@ -85,6 +87,7 @@ GLenum map_Format_Type[] = {
 	GL_UNSIGNED_BYTE,
 	GL_UNSIGNED_BYTE,
 	GL_UNSIGNED_BYTE,
+	GL_UNSIGNED_SHORT,
 
 	GL_UNSIGNED_INT_24_8,
 	GL_FLOAT,
@@ -477,6 +480,48 @@ void OpenGLMesh::DrawSubset(GLuint subset, bool bindtextures)
 	}
 }
 
+void OpenGLMesh::DrawSubset(GLuint subset, std::function<void (const OpenGLMaterial&)> callback)
+{
+	if (vertexlayout == 0 || numvertices == 0)
+		return;
+
+	if (subsettable != nullptr && subset < numsubsets) {
+		const OpenGLAttributeRange& attr = subsettable[subset];
+		const OpenGLMaterial& mat = materials[subset];
+
+		if (!attr.Enabled)
+			return;
+
+		GLenum itype = (meshoptions & GLMESH_32BIT) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+		GLuint start = attr.IndexStart * ((meshoptions & GLMESH_32BIT) ? 4 : 2);
+
+		if (callback)
+			callback(mat);
+
+		if (mat.Texture != 0) {
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, mat.Texture);
+		}
+
+		if (mat.NormalMap != 0) {
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, mat.NormalMap);
+		}
+
+		glBindVertexArray(vertexlayout);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexbuffer);
+
+		if (attr.IndexCount == 0) {
+			glDrawArrays(attr.PrimitiveType, attr.VertexStart, attr.VertexCount);
+		} else {
+			if (attr.VertexCount == 0)
+				glDrawElements(attr.PrimitiveType, attr.IndexCount, itype, (char*)0 + start);
+			else
+				glDrawRangeElements(attr.PrimitiveType, attr.VertexStart, attr.VertexStart + attr.VertexCount - 1, attr.IndexCount, itype, (char*)0 + start);
+		}
+	}
+}
+
 void OpenGLMesh::DrawSubsetInstanced(GLuint subset, GLuint numinstances, bool bindtextures)
 {
 	// NOTE: use SSBO, dummy... (or modify this class)
@@ -522,14 +567,48 @@ void OpenGLMesh::EnableSubset(GLuint subset, bool enable)
 		subsettable[subset].Enabled = enable;
 }
 
+void OpenGLMesh::CalculateBoundingBox()
+{
+	GL_ASSERT(vertexbuffer != 0);
+
+	void* vdata = nullptr;
+	GLushort offset = 0xffff;
+
+	for (int i = 0; ; ++i) {
+		const OpenGLVertexElement& elem = vertexdecl.Elements[i];
+
+		if (elem.Stream == 0xff)
+			break;
+
+		if (elem.Usage == GLDECLUSAGE_POSITION) {
+			GL_ASSERT(elem.Type == GLDECLTYPE_FLOAT3);
+			offset = elem.Offset;
+
+			break;
+		}
+	}
+
+	GL_ASSERT(offset != 0xffff);
+	GL_ASSERT(LockVertexBuffer(0, 0, GLLOCK_READONLY, &vdata));
+
+	boundingbox = Math::AABox();
+
+	for (GLuint i = 0; i < numvertices; ++i) {
+		Math::Vector3* pos = (Math::Vector3*)((char*)vdata + i * vertexdecl.Stride + offset);
+		boundingbox.Add(pos->x, pos->y, pos->z);
+	}
+
+	UnlockVertexBuffer();
+}
+
 void OpenGLMesh::GenerateTangentFrame()
 {
 	GL_ASSERT(vertexdecl.Stride == sizeof(GeometryUtils::CommonVertex));
 	GL_ASSERT(vertexbuffer != 0);
 
-	GeometryUtils::CommonVertex*	oldvdata	= 0;
-	GeometryUtils::TBNVertex*		newvdata	= 0;
-	void*							idata		= 0;
+	GeometryUtils::CommonVertex*	oldvdata	= nullptr;
+	GeometryUtils::TBNVertex*		newvdata	= nullptr;
+	void*							idata		= nullptr;
 	GLuint							newbuffer	= 0;
 	uint32_t						i1, i2, i3;
 	bool							is32bit		= ((meshoptions & GLMESH_32BIT) == GLMESH_32BIT);
@@ -767,7 +846,7 @@ void OpenGLEffect::AddUniform(const char* name, GLuint location, GLuint count, G
 		type == GL_INT ||
 		(type >= GL_INT_VEC2 && type <= GL_INT_VEC4) ||
 		type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_ARRAY || type == GL_SAMPLER_BUFFER ||
-		type == GL_SAMPLER_CUBE || type == GL_IMAGE_2D)
+		type == GL_SAMPLER_CUBE || type == GL_IMAGE_2D || type == GL_UNSIGNED_INT_IMAGE_2D)
 	{
 		uni.StartRegister = intsize;
 
@@ -972,6 +1051,26 @@ void OpenGLEffect::Introspect()
 			std::cout << "  variable (" << j << "): offset = " << values[0] << "\n";
 		}
 	}
+
+	glGetProgramInterfaceiv(program, GL_UNIFORM, GL_ACTIVE_RESOURCES, &count);
+
+	GLenum props4[] = { GL_TYPE, GL_NAME_LENGTH };
+	std::string name;
+
+	for (GLint i = 0; i < count; ++i) {
+		glGetProgramResourceiv(program, GL_UNIFORM, i, ARRAY_SIZE(props4), props4, ARRAY_SIZE(values), &length, values);
+
+		if (values[0] == GL_IMAGE_2D || values[0] == GL_UNSIGNED_INT_IMAGE_2D) {
+			name.resize(values[1]);
+
+			glGetProgramResourceName(program, GL_UNIFORM, i, (GLsizei)name.size(), NULL, &name[0]);
+			name.pop_back();
+
+			std::cout << "Image (" << name << "): \n";
+
+			//glGetUniformLocation(program, name);
+		}
+	}
 #endif
 }
 
@@ -1025,6 +1124,7 @@ void OpenGLEffect::CommitChanges()
 		case GL_SAMPLER_CUBE:
 		case GL_SAMPLER_BUFFER:
 		case GL_IMAGE_2D:
+		case GL_UNSIGNED_INT_IMAGE_2D:
 			glUniform1i(uni.Location, intdata[0]);
 			break;
 
@@ -1282,6 +1382,33 @@ void OpenGLProgramPipeline::Bind()
 	glBindProgramPipeline(pipeline);
 }
 
+void OpenGLProgramPipeline::Introspect()
+{
+#ifndef __APPLE__
+	std::string name;
+	GLenum props1[] = { GL_LOCATION, GL_NAME_LENGTH };
+
+	GLint count = 0;
+	GLint namelength = 0;
+	GLint length = 0;
+	GLint values[10] = {};
+
+	glGetProgramInterfaceiv(program, GL_UNIFORM, GL_ACTIVE_RESOURCES, &count);
+
+	for (GLint i = 0; i < count; ++i) {
+		glGetProgramResourceiv(program, GL_UNIFORM, i, ARRAY_SIZE(props1), props1, ARRAY_SIZE(values), &length, values);
+
+		namelength = values[1];
+		name.resize(namelength);
+
+		glGetProgramResourceName(program, GL_UNIFORM, i, namelength, &length, &name[0]);
+		name.pop_back();
+
+		std::cout << "Uniform (" << name << "): location = " << values[0] << "\n";
+	}
+#endif
+}
+
 void OpenGLProgramPipeline::UseProgramStages(OpenGLProgramPipeline* other, GLbitfield stages)
 {
 	if (other->program == 0)
@@ -1527,6 +1654,30 @@ void OpenGLFramebuffer::Attach(GLenum target, GLuint tex, GLint face, GLint leve
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fboID);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, target, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, attach->ID, level);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void OpenGLFramebuffer::Attach(GLenum target, GLuint renderbuffer)
+{
+	Attachment* attach = nullptr;
+
+	if (target == GL_DEPTH_ATTACHMENT || target == GL_DEPTH_STENCIL_ATTACHMENT)
+		attach = &depthstencil;
+	else
+		attach = &rendertargets[target - GL_COLOR_ATTACHMENT0];
+
+	// must be the same or empty
+	GL_ASSERT(attach->ID == renderbuffer || attach->ID == 0);
+
+	attach->Type = GL_ATTACH_TYPE_RENDERBUFFER;
+	attach->ID = renderbuffer;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fboID);
+	glBindRenderbuffer(GL_RENDERBUFFER, attach->ID);
+
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, target, GL_RENDERBUFFER, attach->ID);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 

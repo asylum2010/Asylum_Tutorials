@@ -2,6 +2,9 @@
 #ifndef _GEOMETRUTILS_H_
 #define _GEOMETRUTILS_H_
 
+#include <vector>
+#include <functional>
+
 #include "orderedarray.hpp"
 #include "3Dmath.h"
 
@@ -53,6 +56,40 @@ struct Edge
 
 typedef OrderedArray<Edge> EdgeSet;
 
+struct FrustumEdge
+{
+	Math::Vector3 v0;
+	Math::Vector3 v1;
+
+	FrustumEdge() = default;
+	FrustumEdge(const FrustumEdge&) = default;
+
+	FrustumEdge& operator =(const FrustumEdge&) = default;
+
+	FrustumEdge(const Math::Vector4& p0, const Math::Vector4& p1) {
+		v0 = (Math::Vector3&)p0;
+		v1 = (Math::Vector3&)p1;
+	}
+};
+
+struct FrustumTriangle
+{
+	Math::Vector3 v0;
+	Math::Vector3 v1;
+	Math::Vector3 v2;
+
+	FrustumTriangle() = default;
+	FrustumTriangle(const FrustumTriangle&) = default;
+
+	FrustumTriangle& operator =(const FrustumTriangle&) = default;
+
+	FrustumTriangle(const Math::Vector4& p0, const Math::Vector4& p1, const Math::Vector4& p2) {
+		v0 = (Math::Vector3&)p0;
+		v1 = (Math::Vector3&)p1;
+		v2 = (Math::Vector3&)p2;
+	}
+};
+
 // --- Functions --------------------------------------------------------------
 
 void AccumulateTangentFrame(TBNVertex* vdata, uint32_t i1, uint32_t i2, uint32_t i3);
@@ -75,6 +112,18 @@ void GenerateTangentFrame(TBNVertex* outvdata, const CommonVertex* vdata, uint32
 void NumVerticesIndicesSphere(uint32_t& outnumverts, uint32_t& outnuminds, uint16_t vsegments, uint16_t hsegments);
 void NumVerticesIndicesCapsule(uint32_t& outnumverts, uint32_t& outnuminds, uint16_t vsegments, uint16_t hsegments);
 void NumVerticesIndices2MSphere(uint32_t& outnumverts, uint32_t& outnuminds, uint16_t vsegments, uint16_t hsegments);
+
+bool PointInFrustum(const Math::Vector4 frustumplanes[6], const Math::Vector3& point);
+bool SegmentIntersectTriangle(Math::Vector3& result, const FrustumEdge& segment, const FrustumTriangle& triangle);
+bool SegmentIntersectFrustum(const std::vector<FrustumTriangle>& frustumtriangles, const FrustumEdge& segment, std::function<void (const Math::Vector3&)> callback);
+bool SegmentIntersectAABox(const Math::AABox& box, const FrustumEdge& segment, std::function<void (const Math::Vector3&)> callback);
+bool RayIntersectAABox(const Math::AABox& box, const Math::Vector3& p, const Math::Vector3& dir, std::function<void (float)> callback);
+
+void SegmentateFrustum(std::vector<FrustumEdge>& result, const Math::Matrix& viewprojinv);
+void TriangulateFrustum(std::vector<FrustumTriangle>& result, const Math::Matrix& viewprojinv);
+void FrustumIntersectAABox(std::vector<Math::Vector3>& result, const Math::Matrix& viewproj, const Math::AABox& box);
+void LightVolumeIntersectAABox(std::vector<Math::Vector3>& points, const Math::Vector3& lightdir, const Math::AABox& box);
+void CalculateAABoxFromPoints(Math::AABox& out, const std::vector<Math::Vector3>& points, const Math::Matrix& viewproj);
 
 }
 

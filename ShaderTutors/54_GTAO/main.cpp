@@ -8,6 +8,7 @@
 
 #include "..\Common\application.h"
 #include "..\Common\gtaorenderer.h"
+#include "..\Common\ldgtaorenderer.h"
 #include "..\Common\spectatorcamera.h"
 
 #define METERS_PER_UNIT		0.01f	// for Sponza
@@ -32,10 +33,11 @@ GLuint				helptext			= 0;
 
 SpectatorCamera		camera;
 GTAORenderer*		gtaorenderer		= nullptr;
+LDGTAORenderer*		ldgtaorenderer		= nullptr;
 
 int					rendermode			= 3;
-bool				useblur				= true;
 bool				drawtext			= true;
+bool				useldrenderer		= false;
 
 bool InitScene()
 {
@@ -78,6 +80,7 @@ bool InitScene()
 
 	// create renderer
 	gtaorenderer = new GTAORenderer(screenwidth, screenheight);
+	ldgtaorenderer = new LDGTAORenderer(screenwidth, screenheight);
 
 	// create render targets
 	GLint value = 0;
@@ -140,7 +143,7 @@ bool InitScene()
 	GLCreateTexture(512, 512, 1, GLFMT_A8B8G8R8, &helptext);
 
 	GLRenderText(
-		"Use WASD and mouse to move around\n\n1 - Scene only\n2 - Scene with GTAO (multi-bounce)\n3 - GTAO only\n\nB - Toggle reconstruction\nH - Toggle help text",
+		"Use WASD and mouse to move around\n\n1 - Scene only\n2 - Scene with GTAO (multi-bounce)\n3 - GTAO only\n4- Toggle low-disprecancy sequence\n\nB - Toggle temporal denoiser\nH - Toggle help text",
 		helptext, 512, 512);
 
 	return true;
@@ -150,6 +153,7 @@ void UninitScene()
 {
 	gbuffer->Detach(GL_COLOR_ATTACHMENT2);
 
+	delete ldgtaorenderer;
 	delete gtaorenderer;
 	delete gbuffereffect;
 	delete combineeffect;
@@ -173,7 +177,8 @@ void KeyUp(KeyCode key)
 {
 	switch (key) {
 	case KeyCodeB:
-		useblur = !useblur;
+		gtaorenderer->ToggleTemporalDenoiser();
+		ldgtaorenderer->ToggleTemporalDenoiser();
 		break;
 
 	case KeyCodeH:
@@ -190,6 +195,10 @@ void KeyUp(KeyCode key)
 
 	case KeyCode3:
 		rendermode = 3;
+		break;
+
+	case KeyCode4:
+		useldrenderer = !useldrenderer;
 		break;
 
 	default:
@@ -230,12 +239,19 @@ void RenderModel(const Math::Matrix& view, const Math::Matrix& proj, const Math:
 
 	// render g-buffer
 	gbuffer->Detach(GL_COLOR_ATTACHMENT2);
-	gbuffer->Attach(GL_COLOR_ATTACHMENT2, gtaorenderer->GetCurrentDepthBuffer(), 0);
+
+	if (useldrenderer)
+		gbuffer->Attach(GL_COLOR_ATTACHMENT2, ldgtaorenderer->GetCurrentDepthBuffer(), 0);
+	else
+		gbuffer->Attach(GL_COLOR_ATTACHMENT2, gtaorenderer->GetCurrentDepthBuffer(), 0);
 
 	gbuffer->Set();
 	{
 		glClearBufferfv(GL_COLOR, 0, clearcolor);
+
+		// rgba16f reads seem to be incoherent on AMD; clearing the buffer apparently flushes the cache
 		glClearBufferfv(GL_COLOR, 1, black);
+
 		glClearBufferfv(GL_COLOR, 2, white);
 		glClearBufferfv(GL_DEPTH, 0, white);
 
@@ -253,7 +269,10 @@ void RenderModel(const Math::Matrix& view, const Math::Matrix& proj, const Math:
 	glDisable(GL_FRAMEBUFFER_SRGB);
 
 	if (rendermode > 1) {
-		gtaorenderer->Render(gbuffer->GetColorAttachment(1), view, proj, eye, clipinfo);
+		if (useldrenderer)
+			ldgtaorenderer->Render(gbuffer->GetColorAttachment(1), view, proj, clipinfo);
+		else
+			gtaorenderer->Render(gbuffer->GetColorAttachment(1), view, proj, clipinfo);
 	}
 
 	// present to screen
@@ -267,10 +286,10 @@ void RenderModel(const Math::Matrix& view, const Math::Matrix& proj, const Math:
 
 	glActiveTexture(GL_TEXTURE1);
 
-	if (useblur)
-		glBindTexture(GL_TEXTURE_2D, gtaorenderer->GetGTAO());
+	if (useldrenderer)
+		glBindTexture(GL_TEXTURE_2D, ldgtaorenderer->GetGTAO());
 	else
-		glBindTexture(GL_TEXTURE_2D, gtaorenderer->GetRawGTAO());
+		glBindTexture(GL_TEXTURE_2D, gtaorenderer->GetGTAO());
 	
 	combineeffect->SetInt("renderMode", rendermode);
 	combineeffect->Begin();

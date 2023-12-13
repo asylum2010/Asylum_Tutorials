@@ -1,4 +1,5 @@
 
+#include <cassert>
 #include "3Dmath.h"
 
 namespace Math {
@@ -116,6 +117,11 @@ Vector3 Vector3::operator *(float s) const
 	return Vector3(x * s, y * s, z * s);
 }
 
+Vector3 Vector3::operator /(float s) const
+{
+	return Vector3(x / s, y / s, z / s);
+}
+
 Vector3 Vector3::operator -() const
 {
 	return Vector3(-x, -y, -z);
@@ -146,6 +152,16 @@ Vector3& Vector3::operator *=(float s)
 	z *= s;
 
 	return *this;
+}
+
+Vector3 Vector3::Min(const Vector3& a, const Vector3& b)
+{
+	return Vector3(Math::Min<float>(a.x, b.x), Math::Min<float>(a.y, b.y), Math::Min<float>(a.z, b.z));
+}
+
+Vector3 Vector3::Max(const Vector3& a, const Vector3& b)
+{
+	return Vector3(Math::Max<float>(a.x, b.x), Math::Max<float>(a.y, b.y), Math::Max<float>(a.z, b.z));
 }
 
 Vector4::Vector4()
@@ -583,6 +599,24 @@ AABox& AABox::operator =(const AABox& other)
 	return *this;
 }
 
+AABox AABox::operator +(const AABox& other)
+{
+	AABox ret = *this;
+
+	ret.Add(other.Min);
+	ret.Add(other.Max);
+
+	return ret;
+}
+
+bool AABox::Contains(const Vector3& p) const
+{
+	return (
+		(p.x >= Min.x && p.x <= Max.x) &&
+		(p.y >= Min.y && p.y <= Max.y) &&
+		(p.z >= Min.z && p.z <= Max.z));
+}
+
 bool AABox::Intersects(const AABox& other) const
 {
 	if (Max[0] < other.Min[0] || Min[0] > other.Max[0])
@@ -651,6 +685,17 @@ void AABox::Inset(float dx, float dy, float dz)
 	Max[2] -= dz;
 }
 
+void AABox::Offset(float dx, float dy, float dz)
+{
+	Min[0] += dx;
+	Min[1] += dy;
+	Min[2] += dz;
+
+	Max[0] += dx;
+	Max[1] += dy;
+	Max[2] += dz;
+}
+
 void AABox::TransformAxisAligned(const Matrix& m)
 {
 	Vector3 vertices[8] = {
@@ -672,6 +717,19 @@ void AABox::TransformAxisAligned(const Matrix& m)
 
 	for (int i = 0; i < 8; ++i)
 		Add(vertices[i]);
+}
+
+void AABox::ToMatrix(Matrix& out) const
+{
+	MatrixIdentity(out);
+
+	out._11 = (Max.x - Min.x) * 0.5f;
+	out._22 = (Max.y - Min.y) * 0.5f;
+	out._33 = (Max.z - Min.z) * 0.5f;
+
+	out._41 = (Max.x + Min.x) * 0.5f;
+	out._42 = (Max.y + Min.y) * 0.5f;
+	out._43 = (Max.z + Min.z) * 0.5f;
 }
 
 void AABox::GetPlanes(Vector4 out[6]) const
@@ -1287,9 +1345,9 @@ void MatrixLookAtLH(Matrix& out, const Vector3& eye, const Vector3& look, const 
 	Vec3Cross(y, z, x);
 	Vec3Normalize(y, y);
 
-	out._11 = x[0];		out._12 = y[0];		out._13 = z[0];		out._14 = 0.0f;
-	out._21 = x[1];		out._22 = y[1];		out._23 = z[1];		out._24 = 0.0f;
-	out._31 = x[2];		out._32 = y[2];		out._33 = z[2];		out._34 = 0.0f;
+	out._11 = x[0];	out._12 = y[0];	out._13 = z[0];	out._14 = 0.0f;
+	out._21 = x[1];	out._22 = y[1];	out._23 = z[1];	out._24 = 0.0f;
+	out._31 = x[2];	out._32 = y[2];	out._33 = z[2];	out._34 = 0.0f;
 
 	// sign depends on input data
 	out._41 = -Vec3Dot(x, eye);
@@ -1311,9 +1369,9 @@ void MatrixLookAtRH(Matrix& out, const Vector3& eye, const Vector3& look, const 
 	Vec3Cross(y, x, z);
 	Vec3Normalize(y, y);
 
-	out._11 = x[0];		out._12 = y[0];		out._13 = -z[0];		out._14 = 0.0f;
-	out._21 = x[1];		out._22 = y[1];		out._23 = -z[1];		out._24 = 0.0f;
-	out._31 = x[2];		out._32 = y[2];		out._33 = -z[2];		out._34 = 0.0f;
+	out._11 = x[0];	out._12 = y[0];	out._13 = -z[0];	out._14 = 0.0f;
+	out._21 = x[1];	out._22 = y[1];	out._23 = -z[1];	out._24 = 0.0f;
+	out._31 = x[2];	out._32 = y[2];	out._33 = -z[2];	out._34 = 0.0f;
 
 	// sign depends on input data
 	out._41 = -Vec3Dot(x, eye);
@@ -1362,18 +1420,18 @@ void MatrixPerspectiveFovLH(Matrix& out, float fovy, float aspect, float nearpla
 	out._12 = out._13 = out._14 = 0;
 	out._21 = out._23 = out._24 = 0;
 	out._31 = out._32 = 0;
-	out._41 = out._42 = out._43 = 0;
+	out._41 = out._42 = out._44 = 0;
 
 	out._34 = 1.0f;
-
-#if defined(VULKAN) || defined(METAL) || defined(DIRECT3D9) || defined(DIRECT3D10)
-	// [0, 1]
-	out._33 = farplane / (nearplane - farplane);
-	out._43 = -nearplane * out._33;
-#else
+	
+#ifdef OPENGL
 	// [-1, 1]
 	out._33 = (farplane + nearplane) / (nearplane - farplane);
 	out._43 = -2 * farplane * nearplane / (nearplane - farplane);
+#else
+	// [0, 1]
+	out._33 = farplane / (nearplane - farplane);
+	out._43 = -nearplane * out._33;
 #endif
 }
 
@@ -1390,18 +1448,18 @@ void MatrixPerspectiveFovRH(Matrix& out, float fovy, float aspect, float nearpla
 	out._12 = out._13 = out._14 = 0;
 	out._21 = out._23 = out._24 = 0;
 	out._31 = out._32 = 0;
-	out._41 = out._42 = out._43 = 0;
+	out._41 = out._42 = out._44 = 0;
 
 	out._34 = -1.0f;
 
-#if defined(VULKAN) || defined(METAL) || defined(DIRECT3D9) || defined(DIRECT3D10)
-	// [0, 1]
-	out._33 = farplane / (nearplane - farplane);
-	out._43 = nearplane * out._33;
-#else
+#ifdef OPENGL
 	// [-1, 1]
 	out._33 = (farplane + nearplane) / (nearplane - farplane);
 	out._43 = 2 * farplane * nearplane / (nearplane - farplane);
+#else
+	// [0, 1]
+	out._33 = farplane / (nearplane - farplane);
+	out._43 = nearplane * out._33;
 #endif
 }
 
@@ -1602,7 +1660,13 @@ void FrustumPlanes(Math::Vector4 out[6], const Math::Matrix& viewproj)
 	out[1] = { viewproj._14 - viewproj._11, viewproj._24 - viewproj._21, viewproj._34 - viewproj._31, viewproj._44 - viewproj._41 };	// right
 	out[2] = { viewproj._14 - viewproj._12, viewproj._24 - viewproj._22, viewproj._34 - viewproj._32, viewproj._44 - viewproj._42 };	// top
 	out[3] = { viewproj._12 + viewproj._14, viewproj._22 + viewproj._24, viewproj._32 + viewproj._34, viewproj._42 + viewproj._44 };	// bottom
+	
+#ifdef OPENGL
+	out[4] = { viewproj._14 + viewproj._13, viewproj._24 + viewproj._23, viewproj._34 + viewproj._33, viewproj._44 + viewproj._43 };	// near
+#else
 	out[4] = { viewproj._13, viewproj._23, viewproj._33, viewproj._43 };																// near
+#endif
+
 	out[5] = { viewproj._14 - viewproj._13, viewproj._24 - viewproj._23, viewproj._34 - viewproj._33, viewproj._44 - viewproj._43 };	// far
 
 	PlaneNormalize(out[0], out[0]);
@@ -1842,6 +1906,11 @@ Math::Vector3 operator *(float f, const Math::Vector3& v)
 Math::Vector4 operator *(float f, const Math::Vector4& v)
 {
 	return Math::Vector4(f * v.x, f * v.y, f * v.z, f * v.w);
+}
+
+Math::Vector3 operator /(float f, const Math::Vector3& v)
+{
+	return Math::Vector3(f / v.x, f / v.y, f / v.z);
 }
 
 Math::Vector4 operator /(float f, const Math::Vector4& v)

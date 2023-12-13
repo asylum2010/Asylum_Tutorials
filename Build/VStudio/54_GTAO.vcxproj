@@ -101,6 +101,7 @@
     <ClCompile Include="..\..\ShaderTutors\Common\gl4ext.cpp" />
     <ClCompile Include="..\..\ShaderTutors\Common\glextensions.cpp" />
     <ClCompile Include="..\..\ShaderTutors\Common\gtaorenderer.cpp" />
+    <ClCompile Include="..\..\ShaderTutors\Common\ldgtaorenderer.cpp" />
     <ClCompile Include="..\..\ShaderTutors\Common\spectatorcamera.cpp" />
     <ClCompile Include="..\..\ShaderTutors\Common\win32application.cpp" />
   </ItemGroup>
@@ -112,6 +113,7 @@
     <ClInclude Include="..\..\ShaderTutors\Common\gl4ext.h" />
     <ClInclude Include="..\..\ShaderTutors\Common\glextensions.h" />
     <ClInclude Include="..\..\ShaderTutors\Common\gtaorenderer.h" />
+    <ClInclude Include="..\..\ShaderTutors\Common\ldgtaorenderer.h" />
     <ClInclude Include="..\..\ShaderTutors\Common\spectatorcamera.h" />
     <ClInclude Include="..\..\ShaderTutors\Common\win32application.h" />
   </ItemGroup>
@@ -123,6 +125,8 @@
     <None Include="..\..\Media\ShadersGL\gtaocombine.frag" />
     <None Include="..\..\Media\ShadersGL\gtaospatialdenoiser.frag" />
     <None Include="..\..\Media\ShadersGL\gtaotemporaldenoiser.frag" />
+    <None Include="..\..\Media\ShadersGL\ldgtao.comp" />
+    <None Include="..\..\Media\ShadersGL\ldgtaodenoise.comp" />
     <None Include="..\..\Media\ShadersGL\screenquad.frag" />
     <None Include="..\..\Media\ShadersGL\screenquad.vert" />
   </ItemGroup>

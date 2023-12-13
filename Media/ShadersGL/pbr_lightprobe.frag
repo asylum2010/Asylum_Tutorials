@@ -25,7 +25,7 @@ void main()
 	float ndotv			= clamp(dot(n, v), 0.0, 1.0);
 	float miplevel		= matParams.x * (NUM_MIPS - 1);
 
-	vec4 fd				= BRDF_Lambertian(baseColorSamp, tex);
+	vec4 fd				= BRDF_Lambertian_NoDivision(baseColorSamp, tex);
 	vec3 diffuse_rad	= texture(illumDiffuse, n).rgb * fd.rgb;
 	vec3 specular_rad	= textureLod(illumSpecular, r, miplevel).rgb;
 	vec2 f0_scale_bias	= texture(brdfLUT, vec2(ndotv, matParams.x)).rg;

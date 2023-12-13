@@ -210,6 +210,7 @@ PFNGLDISPATCHCOMPUTEPROC						glDispatchCompute = 0;
 PFNGLDISPATCHCOMPUTEINDIRECTPROC				glDispatchComputeIndirect = 0;
 PFNGLBINDIMAGETEXTUREPROC						glBindImageTexture = 0;
 PFNGLMEMORYBARRIERPROC							glMemoryBarrier = 0;
+PFNGLMEMORYBARRIERBYREGIONPROC					glMemoryBarrierByRegion = 0;
 PFNGLGETPROGRAMBINARYPROC						glGetProgramBinary = 0;
 PFNGLGETPROGRAMINTERFACEIVPROC					glGetProgramInterfaceiv = 0;
 PFNGLSHADERSTORAGEBLOCKBINDINGPROC				glShaderStorageBlockBinding = 0;
@@ -692,6 +693,7 @@ void GLExtensions::QueryFeatures (void* hdc)
 		GET_ADDRESS(glDispatchCompute, PFNGLDISPATCHCOMPUTEPROC, "");
 		GET_ADDRESS(glDispatchComputeIndirect, PFNGLDISPATCHCOMPUTEINDIRECTPROC, "");
 		GET_ADDRESS(glMemoryBarrier, PFNGLMEMORYBARRIERPROC, "");
+		GET_ADDRESS(glMemoryBarrierByRegion, PFNGLMEMORYBARRIERBYREGIONPROC, "");
 	}
 
 	if (ARB_shader_image_load_store) {

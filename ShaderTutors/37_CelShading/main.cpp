@@ -84,12 +84,14 @@ bool InitScene()
 	{
 		uint32_t* data = (uint32_t*)rect.pBits;
 
-		data[0] = 0xff7f7f7f;
+		data[0] = 0xff7f7f7f;	// < 0.375 -> 0.5
 		data[1] = 0xff7f7f7f;
 		data[2] = 0xff7f7f7f;
-		data[3] = 0xffafafaf;
+
+		data[3] = 0xffafafaf;	// < 0.625 -> 0.68
 		data[4] = 0xffafafaf;
-		data[5] = 0xffffffff;
+
+		data[5] = 0xffffffff;	// >= 0.625 NextPow-> 1.0
 		data[6] = 0xffffffff;
 		data[7] = 0xffffffff;
 	}

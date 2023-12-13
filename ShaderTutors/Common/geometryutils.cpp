@@ -944,4 +944,317 @@ void NumVerticesIndices2MSphere(uint32_t& outnumverts, uint32_t& outnuminds, uin
 	outnuminds = (hsegments - 2) * vsegments * 6;
 }
 
+bool PointInFrustum(const Math::Vector4 frustumplanes[6], const Math::Vector3& point)
+{
+	float d0 = Math::PlaneDotCoord(frustumplanes[0], point);
+	float d1 = Math::PlaneDotCoord(frustumplanes[1], point);
+	float d2 = Math::PlaneDotCoord(frustumplanes[2], point);
+	float d3 = Math::PlaneDotCoord(frustumplanes[3], point);
+	float d4 = Math::PlaneDotCoord(frustumplanes[4], point);
+	float d5 = Math::PlaneDotCoord(frustumplanes[5], point);
+
+	return (d0 >= 0 && d1 >= 0 && d2 >= 0 && d3 >= 0 && d4 >= 0 && d5 >= 0);
+}
+
+bool SegmentIntersectTriangle(Math::Vector3& result, const FrustumEdge& segment, const FrustumTriangle& triangle)
+{
+	// NOTE: Möller–Trumbore intersection algorithm
+
+	const Math::Vector3& a = triangle.v0;
+	const Math::Vector3& raystart = segment.v0;
+
+	Math::Vector3 raydir = segment.v1 - segment.v0;
+	Math::Vector3 e1 = triangle.v1 - a;
+	Math::Vector3 e2 = triangle.v2 - a;
+	Math::Vector3 e3, n, p;
+	float u;
+
+	Math::Vec3Cross(n, e1, e2);
+
+	u = Math::Vec3Dot(n, raydir);
+
+	if (fabs(u) < 1e-14f) {
+		// parallel to triangle
+		return false;
+	}
+
+	e3 = (a - raystart) / u;
+	Math::Vec3Cross(p, raydir, e3);
+
+	float b0 = -Math::Vec3Dot(p, e2);
+	float b1 = Math::Vec3Dot(p, e1);
+	float b2 = (1.0f - (b0 + b1));
+	float t = Math::Vec3Dot(n, e3);
+
+	if (t < 0.0f || t > 1.0f)
+		return false;
+
+	result = raystart + t * raydir;
+
+	return (b0 >= 0.0f && b1 >= 0.0f && b2 >= 0.0f);
+}
+
+bool SegmentIntersectFrustum(const std::vector<FrustumTriangle>& frustumtriangles, const FrustumEdge& segment, std::function<void (const Math::Vector3&)> callback)
+{
+	Math::Vector3 isect;
+	bool found = false;
+
+	for (const FrustumTriangle& triangle : frustumtriangles) {
+		if (SegmentIntersectTriangle(isect, segment, triangle)) {
+			callback(isect);
+			found = true;
+		}
+	}
+
+	return found;
+}
+
+bool SegmentIntersectAABox(const Math::AABox& box, const FrustumEdge& segment, std::function<void (const Math::Vector3&)> callback)
+{
+	const Math::Vector3& raystart = segment.v0;
+	Math::Vector3 raydir = (segment.v1 - segment.v0);
+	Math::Vector3 invraydir = 1.0f / raydir;
+
+	Math::Vector3 tnear	= invraydir * (box.Min - raystart);
+	Math::Vector3 tfar	= invraydir * (box.Max - raystart);
+	Math::Vector3 tmin	= Math::Vector3::Min(tnear, tfar);
+	Math::Vector3 tmax	= Math::Vector3::Max(tnear, tfar);
+
+	float u = Math::Max(tmin.x, Math::Max(tmin.y, tmin.z));
+	float v = Math::Min(tmax.x, Math::Min(tmax.y, tmax.z));
+
+	if (v < Math::Max(u, 0.0f))
+		return false;
+
+	if (u >= 0.0f && u <= 1.0f)
+		callback(raystart + u * raydir);
+
+	if (v >= 0.0f && v <= 1.0f)
+		callback(raystart + v * raydir);
+
+	return true;
+}
+
+bool RayIntersectAABox(const Math::AABox& box, const Math::Vector3& p, const Math::Vector3& dir, std::function<void (float)> callback)
+{
+	Math::Vector3 invraydir = 1.0f / dir;
+
+	Math::Vector3 tnear	= invraydir * (box.Min - p);
+	Math::Vector3 tfar	= invraydir * (box.Max - p);
+	Math::Vector3 tmin	= Math::Vector3::Min(tnear, tfar);
+	Math::Vector3 tmax	= Math::Vector3::Max(tnear, tfar);
+
+	float u = Math::Max(tmin.x, Math::Max(tmin.y, tmin.z));
+	float v = Math::Min(tmax.x, Math::Min(tmax.y, tmax.z));
+
+	// allow some tolerance
+	//v = ((v < 0.0f && v > -1e-3f) ? 0.0f : v);
+	
+	if (v < 0) {
+		// AABB is behind the ray
+		return false;
+	}
+
+	if (v < u) {
+		// no intersection
+		return false;
+	}
+
+	// caller will decide which one to use
+	callback(u);
+	callback(v);
+
+	return true;
+}
+
+void SegmentateFrustum(std::vector<FrustumEdge>& result, const Math::Matrix& viewprojinv)
+{
+	Math::Vector4 unitcube[8] = {
+		Math::Vector4(-1, -1, -1, 1),
+		Math::Vector4(-1, -1, 1, 1),
+		Math::Vector4(-1, 1, -1, 1),
+		Math::Vector4(-1, 1, 1, 1),
+
+		Math::Vector4(1, -1, -1, 1),
+		Math::Vector4(1, -1, 1, 1),
+		Math::Vector4(1, 1, -1, 1),
+		Math::Vector4(1, 1, 1, 1)
+	};
+
+	for (Math::Vector4& vert : unitcube) {
+		Math::Vec4Transform(vert, vert, viewprojinv);
+		vert /= vert.w;
+	}
+
+	result.reserve(12);
+
+	result.push_back({ unitcube[0], unitcube[1] });
+	result.push_back({ unitcube[0], unitcube[2] });
+	result.push_back({ unitcube[1], unitcube[3] });
+	result.push_back({ unitcube[3], unitcube[2] });
+
+	result.push_back({ unitcube[4], unitcube[5] });
+	result.push_back({ unitcube[4], unitcube[6] });
+	result.push_back({ unitcube[5], unitcube[7] });
+	result.push_back({ unitcube[7], unitcube[6] });
+
+	result.push_back({ unitcube[0], unitcube[4] });
+	result.push_back({ unitcube[1], unitcube[5] });
+	result.push_back({ unitcube[2], unitcube[6] });
+	result.push_back({ unitcube[3], unitcube[7] });
+}
+
+void TriangulateFrustum(std::vector<FrustumTriangle>& result, const Math::Matrix& viewprojinv)
+{
+	// NOTE: doesn't care about normal vectors, disable backface culling when drawing
+
+	Math::Vector4 unitcube[8] = {
+		Math::Vector4(-1, -1, -1, 1),
+		Math::Vector4(-1, -1, 1, 1),
+		Math::Vector4(-1, 1, -1, 1),
+		Math::Vector4(-1, 1, 1, 1),
+
+		Math::Vector4(1, -1, -1, 1),
+		Math::Vector4(1, -1, 1, 1),
+		Math::Vector4(1, 1, -1, 1),
+		Math::Vector4(1, 1, 1, 1)
+	};
+
+	for (Math::Vector4& vert : unitcube) {
+		Math::Vec4Transform(vert, vert, viewprojinv);
+		vert /= vert.w;
+	}
+
+	result.reserve(12);
+
+	// left
+	result.push_back({ unitcube[0], unitcube[1], unitcube[2] });
+	result.push_back({ unitcube[1], unitcube[3], unitcube[2] });
+
+	// right
+	result.push_back({ unitcube[4], unitcube[6], unitcube[5] });
+	result.push_back({ unitcube[6], unitcube[7], unitcube[5] });
+
+	// front
+	result.push_back({ unitcube[0], unitcube[2], unitcube[4] });
+	result.push_back({ unitcube[2], unitcube[6], unitcube[4] });
+
+	// back
+	result.push_back({ unitcube[5], unitcube[7], unitcube[1] });
+	result.push_back({ unitcube[7], unitcube[3], unitcube[1] });
+
+	// top
+	result.push_back({ unitcube[2], unitcube[3], unitcube[6] });
+	result.push_back({ unitcube[3], unitcube[7], unitcube[6] });
+
+	// bottom
+	result.push_back({ unitcube[1], unitcube[0], unitcube[5] });
+	result.push_back({ unitcube[0], unitcube[4], unitcube[5] });
+}
+
+void FrustumIntersectAABox(std::vector<Math::Vector3>& result, const Math::Matrix& viewproj, const Math::AABox& box)
+{
+	std::vector<FrustumEdge> boxedges;
+	std::vector<FrustumEdge> frustumedges;
+	std::vector<FrustumTriangle> frustumtriangles;
+
+	Math::Vector4 frustumplanes[6];
+	Math::Matrix boxworld;
+	Math::Matrix viewprojinv;
+
+	box.ToMatrix(boxworld);
+	SegmentateFrustum(boxedges, boxworld);
+
+	Math::MatrixInverse(viewprojinv, viewproj);
+	
+	TriangulateFrustum(frustumtriangles, viewprojinv);
+	SegmentateFrustum(frustumedges, viewprojinv);
+
+	// plane normals point inward
+	Math::FrustumPlanes(frustumplanes, viewproj);
+
+	result.reserve(8);
+
+	// intersect every edge with every triangle (also check if frustum contains it)
+	for (const FrustumEdge& segment : boxedges) {
+		bool found = SegmentIntersectFrustum(frustumtriangles, segment, [&](const Math::Vector3& p) -> void {
+			result.push_back(p);
+			});
+
+		if (PointInFrustum(frustumplanes, segment.v0))
+			result.push_back(segment.v0);
+
+		if (PointInFrustum(frustumplanes, segment.v1))
+			result.push_back(segment.v1);
+	}
+
+	// intersect every edge with the bounding box (also check for containment)
+	for (const FrustumEdge& segment : frustumedges) {
+		SegmentIntersectAABox(box, segment, [&](const Math::Vector3& p) -> void {
+			result.push_back(p);
+			});
+
+		if (box.Contains(segment.v0))
+			result.push_back(segment.v0);
+
+		if (box.Contains(segment.v1))
+			result.push_back(segment.v1);
+	}
+
+	// remove duplicates
+	for (size_t i = 1; i < result.size(); ) {
+		bool found = false;
+
+		for (size_t j = 0; j < i; ++j) {
+			const Math::Vector3& a = result[i];
+			const Math::Vector3& b = result[j];
+
+			if (fabs(a.x - b.x) < 1e-14f &&
+				fabs(a.y - b.y) < 1e-14f &&
+				fabs(a.z - b.z) < 1e-14f)
+			{
+				if (i < result.size() - 1)
+					std::swap(result[i], result[result.size() - 1]);
+
+				result.pop_back();
+				found = true;
+
+				break;
+			}
+		}
+
+		if (!found)
+			++i;
+	}
+}
+
+void LightVolumeIntersectAABox(std::vector<Math::Vector3>& points, const Math::Vector3& lightdir, const Math::AABox& box)
+{
+	std::vector<Math::Vector3> tmppoints;
+	tmppoints.reserve(8);
+
+	for (size_t i = 0; i < points.size(); ++i) {
+		RayIntersectAABox(box, points[i], lightdir, [&](float t) -> void {
+			if (t > 1e-3f) {
+				// don't want duplicates
+				tmppoints.push_back(points[i] + t * lightdir);
+			}
+			});
+	}
+
+	points.insert(points.end(), tmppoints.begin(), tmppoints.end());
+}
+
+void CalculateAABoxFromPoints(Math::AABox& out, const std::vector<Math::Vector3>& points, const Math::Matrix& viewproj)
+{
+	Math::Vector3 v;
+
+	out = Math::AABox();
+
+	for (const Math::Vector3& p : points) {
+		Math::Vec3TransformCoord(v, p, viewproj);
+		out.Add(v);
+	}
+}
+
 }

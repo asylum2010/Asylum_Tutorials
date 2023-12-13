@@ -94,7 +94,7 @@ void ParticleSystem::Update(float dt)
 	}
 }
 
-void ParticleSystem::Draw(const Math::Matrix& world, const Math::Matrix& view, std::function<void(size_t)> callback)
+void ParticleSystem::Draw(const Math::Matrix& world, const Math::Matrix& view, std::function<void (size_t)> callback)
 {
 	Math::Vector3	worldpos;
 	Math::Vector3	right, up;

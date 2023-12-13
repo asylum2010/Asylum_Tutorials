@@ -25,10 +25,35 @@ static _CrtMemState _memstate;
 
 static Win32Application* _app = nullptr;
 
+static KeyCode HandleExtendedKeys(WPARAM wParam, LPARAM lParam)
+{
+	WORD vkcode = LOWORD(wParam);
+	WORD keyflags = HIWORD(lParam);
+	WORD scancode = LOBYTE(keyflags);
+
+	if ((keyflags & KF_EXTENDED) == KF_EXTENDED)
+		scancode = MAKEWORD(scancode, 0xE0);
+
+	switch (vkcode) {
+	case VK_CONTROL:
+	case VK_SHIFT:
+	case VK_MENU:
+		vkcode = LOWORD(MapVirtualKeyA(scancode, MAPVK_VSC_TO_VK_EX));
+		break;
+
+	default:
+		break;
+	}
+
+	return (KeyCode)vkcode;
+}
+
 static LRESULT WINAPI WndProc(HWND hWnd, unsigned int msg, WPARAM wParam, LPARAM lParam)
 {
 	if (hWnd != _app->hwnd)
 		return DefWindowProc(hWnd, msg, wParam, lParam);
+
+	KeyCode code = KeyCodeUnknown;
 
 	switch (msg) {
 	case WM_CLOSE:
@@ -41,14 +66,18 @@ static LRESULT WINAPI WndProc(HWND hWnd, unsigned int msg, WPARAM wParam, LPARAM
 		return 0;
 
 	case WM_KEYDOWN:
+		code = HandleExtendedKeys(wParam, lParam);
+
 		if (_app->KeyDownCallback)
-			_app->KeyDownCallback((KeyCode)wParam);
+			_app->KeyDownCallback(code);
 
 		break;
 
 	case WM_KEYUP:
-		switch (wParam) {
-		case VK_ESCAPE:
+		code = HandleExtendedKeys(wParam, lParam);
+
+		switch (code) {
+		case KeyCodeEscape:
 			if (hWnd == _app->hwnd)
 				SendMessage(hWnd, WM_CLOSE, 0, 0);
 
@@ -56,7 +85,7 @@ static LRESULT WINAPI WndProc(HWND hWnd, unsigned int msg, WPARAM wParam, LPARAM
 
 		default:
 			if (_app->KeyUpCallback)
-				_app->KeyUpCallback((KeyCode)wParam);
+				_app->KeyUpCallback(code);
 
 			break;
 		} break;

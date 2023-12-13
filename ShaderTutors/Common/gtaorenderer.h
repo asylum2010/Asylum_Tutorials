@@ -25,16 +25,18 @@ private:
 	GLuint				depthbuffers[2];	// for temporal denoiser
 	GLuint				noisetex;
 	int					currsample;
+	bool				enabletemporal;
 
 public:
 	GTAORenderer(uint32_t width, uint32_t height);
 	~GTAORenderer();
 
-	void Render(GLuint normals, const Math::Matrix& view, const Math::Matrix& proj, const Math::Vector3& eye, const Math::Vector4& clipinfo);
+	void Render(GLuint normals, const Math::Matrix& view, const Math::Matrix& proj, const Math::Vector4& clipinfo);
 
+	inline void ToggleTemporalDenoiser()			{ enabletemporal = !enabletemporal; }
 	inline GLuint GetCurrentDepthBuffer() const		{ return depthbuffers[currsample % 2]; }
-	inline GLuint GetGTAO() const					{ return accumtargets[currsample % 2]->GetColorAttachment(0); }
 	inline GLuint GetRawGTAO() const				{ return gtaotarget->GetColorAttachment(0); }
+	inline GLuint GetGTAO() const					{ return accumtargets[currsample % 2]->GetColorAttachment(0); }
 };
 
 #endif

@@ -180,7 +180,7 @@ public:
 
 	// specific
 	bool SetGeometry(ID2D1PathGeometry* geometry, FLOAT strokewidth);
-	bool SetInstanceData(UINT numinstances, std::function<void(UINT, Math::Matrix&)> callback);
+	bool SetInstanceData(UINT numinstances, std::function<void (UINT, Math::Matrix&)> callback);
 	void Draw();
 };
 

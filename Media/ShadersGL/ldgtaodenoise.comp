@@ -1,0 +1,32 @@
+
+#version 440
+
+layout (binding = 0) uniform sampler2D inputAO; 
+layout (r8ui, binding = 1) uniform writeonly uimage2D outputAO; 
+
+layout (local_size_x = 8, local_size_y = 8) in;
+void main()
+{
+	const vec4 ones = vec4(1.0);
+
+	// NOTE: 4x4 filter offsets image
+
+	ivec2	loc		= ivec2(gl_GlobalInvocationID.xy);
+	vec2	size	= vec2(textureSize(inputAO, 0));
+	vec2	tex		= (vec2(loc) - vec2(1.5)) / size;
+	float	totalao	= 0.0;
+
+	vec4 samples0 = textureGatherOffset(inputAO, tex, ivec2(0, 0), 0);
+	vec4 samples1 = textureGatherOffset(inputAO, tex, ivec2(0, 2), 0);
+	vec4 samples2 = textureGatherOffset(inputAO, tex, ivec2(2, 0), 0);
+	vec4 samples3 = textureGatherOffset(inputAO, tex, ivec2(2, 2), 0);
+
+	totalao += dot(samples0, ones);
+	totalao += dot(samples1, ones);
+	totalao += dot(samples2, ones);
+	totalao += dot(samples3, ones);
+
+	totalao *= 0.0625;
+
+	imageStore(outputAO, loc, uvec4(totalao * 255.0));
+}

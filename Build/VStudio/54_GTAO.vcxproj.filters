@@ -37,6 +37,9 @@
     <ClCompile Include="..\..\ShaderTutors\Common\gtaorenderer.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\ldgtaorenderer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\ShaderTutors\Common\3Dmath.h">
@@ -66,6 +69,9 @@
     <ClInclude Include="..\..\ShaderTutors\Common\gtaorenderer.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\ldgtaorenderer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Media\ShadersGL\screenquad.frag">
@@ -93,6 +99,12 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="..\..\Media\ShadersGL\gtaotemporaldenoiser.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\ldgtao.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\ldgtaodenoise.comp">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

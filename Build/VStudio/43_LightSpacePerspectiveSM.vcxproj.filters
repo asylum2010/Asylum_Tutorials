@@ -1,0 +1,133 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\ShaderTutors\43_LightSpacePerspectiveSM\main.cpp" />
+    <ClCompile Include="..\..\ShaderTutors\Common\3Dmath.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\basiccamera.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\dds.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\geometryutils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\gl4ext.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\glextensions.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\win32application.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\spectatorcamera.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\averageluminance.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\Common\ldgtaorenderer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ShaderTutors\43_LightSpacePerspectiveSM\main_debug.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{80aea208-a7ae-479c-902d-acad54a825a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{0ae7c407-358d-4c5a-9843-0e0377a17e73}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ShaderTutors\Common\3Dmath.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\basiccamera.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\dds.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\geometryutils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\gl4ext.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\glextensions.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\win32application.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\spectatorcamera.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\averageluminance.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ShaderTutors\Common\ldgtaorenderer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Media\ShadersGL\sunlight.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\sunlight.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\lspsm.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\lspsm.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\simplecolor.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\simplecolor.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\scaleto01.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\sky.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\sky.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\pbr_common.head">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\ambientprobe.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\ambientprobe.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\gbufferonly.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\gbufferonly.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\ldgtao.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\Media\ShadersGL\ldgtaodenoise.comp">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

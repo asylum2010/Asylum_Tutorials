@@ -1363,7 +1363,7 @@ void Render(float alpha, float elapsedtime)
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
-	gtaorenderer->Render(gbuffer->GetColorAttachment(1), view, proj, eye, clipinfo);
+	gtaorenderer->Render(gbuffer->GetColorAttachment(1), view, proj, clipinfo);
 
 	// STEP 3: z-only pass
 	rendertarget->Set();

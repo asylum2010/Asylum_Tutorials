@@ -70,7 +70,7 @@ public:
 	bool Initialize(IParticleStorage* impl, size_t maxnumparticles);
 
 	void Update(float dt);
-	void Draw(const Math::Matrix& world, const Math::Matrix& view, std::function<void(size_t)> callback);
+	void Draw(const Math::Matrix& world, const Math::Matrix& view, std::function<void (size_t)> callback);
 };
 
 #endif

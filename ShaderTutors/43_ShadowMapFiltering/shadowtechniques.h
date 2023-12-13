@@ -10,7 +10,7 @@
 class ShadowTechnique
 {
 protected:
-	typedef std::function<void(const Math::Matrix&, const Math::Vector2&)> ShadowCallback;
+	typedef std::function<void (const Math::Matrix&, const Math::Vector2&)> ShadowCallback;
 
 	LPDIRECT3DDEVICE9	device;
 	LPDIRECT3DTEXTURE9	shadowmap;

@@ -22,6 +22,7 @@ GTAORenderer::GTAORenderer(uint32_t width, uint32_t height)
 	depthbuffers[1]		= 0;
 	noisetex			= 0;
 	currsample			= 0;
+	enabletemporal		= true;
 
 	// generate noise texture
 	uint8_t* data = new uint8_t[16 * 2];
@@ -166,7 +167,7 @@ GTAORenderer::~GTAORenderer()
 	GL_SAFE_DELETE_TEXTURE(noisetex);
 }
 
-void GTAORenderer::Render(GLuint normals, const Math::Matrix& view, const Math::Matrix& proj, const Math::Vector3& eye, const Math::Vector4& clipinfo)
+void GTAORenderer::Render(GLuint normals, const Math::Matrix& view, const Math::Matrix& proj, const Math::Vector4& clipinfo)
 {
 	const float rotations[6] = { 60.0f, 300.0f, 180.0f, 240.0f, 120.0f, 0.0f };
 	const float offsets[4] = { 0.0f, 0.5f, 0.25f, 0.75f };
@@ -216,7 +217,6 @@ void GTAORenderer::Render(GLuint normals, const Math::Matrix& view, const Math::
 	params.x = rotations[currsample % 6] / 360.0f;
 	params.y = offsets[(currsample / 6) % 4];
 
-	gtaoeffect->SetVector("eyePos", eye);
 	gtaoeffect->SetVector("projInfo", projinfo);
 	gtaoeffect->SetVector("clipInfo", clipinfo);
 	gtaoeffect->SetVector("params", params);
@@ -232,17 +232,12 @@ void GTAORenderer::Render(GLuint normals, const Math::Matrix& view, const Math::
 	gtaotarget->Unset();
 
 	// spatial denoiser
-	Math::Matrix invprevview;
-	Math::Matrix invcurrview;
-	float backprojinfo[] = { 1.0f / proj._11, 1.0f / proj._22, 0, 0 };
-
-	Math::MatrixInverse(invprevview, prevview);
-	Math::MatrixInverse(invcurrview, currview);
+	OpenGLFramebuffer* spatialdenoisertarget = (enabletemporal ? blurtarget : srctarget);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gtaotarget->GetColorAttachment(0));
 
-	blurtarget->Set();
+	spatialdenoisertarget->Set();
 	{
 		spatialdenoiser->Begin();
 		{
@@ -250,40 +245,49 @@ void GTAORenderer::Render(GLuint normals, const Math::Matrix& view, const Math::
 		}
 		spatialdenoiser->End();
 	}
-	blurtarget->Unset();
+	spatialdenoisertarget->Unset();
 
-	// temporal denoiser
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, srctarget->GetColorAttachment(0));
+	if (enabletemporal) {
+		Math::Matrix invprevview;
+		Math::Matrix invcurrview;
+		float backprojinfo[] = { 1.0f / proj._11, 1.0f / proj._22, 0, 0 };
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, blurtarget->GetColorAttachment(0));
+		Math::MatrixInverse(invprevview, prevview);
+		Math::MatrixInverse(invcurrview, currview);
 
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, depthbuffers[1 - currsample % 2]);
+		// temporal denoiser
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, srctarget->GetColorAttachment(0));
 
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, depthbuffers[currsample % 2]);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, blurtarget->GetColorAttachment(0));
 
-	dsttarget->Set();
-	{
-		temporaldenoiser->SetMatrix("matPrevViewInv", invprevview);
-		temporaldenoiser->SetMatrix("matCurrViewInv", invcurrview);
-		temporaldenoiser->SetMatrix("matPrevView", prevview);
-		temporaldenoiser->SetMatrix("matProj", proj);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, depthbuffers[1 - currsample % 2]);
 
-		temporaldenoiser->SetVector("projInfo", backprojinfo);
-		temporaldenoiser->SetVector("clipPlanes", clipinfo);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, depthbuffers[currsample % 2]);
 
-		temporaldenoiser->Begin();
+		dsttarget->Set();
 		{
-			screenquad->Draw(false);
-		}
-		temporaldenoiser->End();
-	}
-	dsttarget->Unset();
+			temporaldenoiser->SetMatrix("matPrevViewInv", invprevview);
+			temporaldenoiser->SetMatrix("matCurrViewInv", invcurrview);
+			temporaldenoiser->SetMatrix("matPrevView", prevview);
+			temporaldenoiser->SetMatrix("matProj", proj);
 
-	// prepare for next round
-	prevview = currview;
-	currsample = (currsample + 1) % 6;
+			temporaldenoiser->SetVector("projInfo", backprojinfo);
+			temporaldenoiser->SetVector("clipPlanes", clipinfo);
+
+			temporaldenoiser->Begin();
+			{
+				screenquad->Draw(false);
+			}
+			temporaldenoiser->End();
+		}
+		dsttarget->Unset();
+	
+		// prepare for next round
+		prevview = currview;
+		currsample = (currsample + 1) % 6;
+	}
 }

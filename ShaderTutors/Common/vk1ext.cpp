@@ -232,7 +232,7 @@ VkDeviceSize VulkanMemorySubAllocator::AdjustBufferOffset(VkDeviceSize offset, V
 {
 	VkDeviceSize minalignment = 4;
 
-	if (usageflags & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT|VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)
+	if (usageflags & (VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT|VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT))
 		minalignment = driverInfo.deviceProps.limits.minTexelBufferOffsetAlignment;
 	else if (usageflags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
 		minalignment = driverInfo.deviceProps.limits.minUniformBufferOffsetAlignment;

@@ -37,6 +37,7 @@ enum KeyCode
 {
 	// https://snipplr.com/view/42797
 	
+	KeyCodeUnknown = 0,
 	KeyCodeBackspace = 0x08,
 	KeyCodeTab = PLATFORM_KEYCODE(0x09, 0x30),
 	KeyCodeEnter = PLATFORM_KEYCODE(0x0d, 0x24),

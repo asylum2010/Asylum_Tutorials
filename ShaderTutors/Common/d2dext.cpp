@@ -388,7 +388,7 @@ bool D3D11InstancedRenderer::SetGeometry(ID2D1PathGeometry* geometry, FLOAT stro
 	return true;
 }
 
-bool D3D11InstancedRenderer::SetInstanceData(UINT numinstances, std::function<void(UINT, Math::Matrix&)> callback)
+bool D3D11InstancedRenderer::SetInstanceData(UINT numinstances, std::function<void (UINT, Math::Matrix&)> callback)
 {
 	if (instancesrv != nullptr)
 		instancesrv->Release();

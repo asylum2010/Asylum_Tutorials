@@ -14,7 +14,9 @@ class SpectatorCamera
 		CameraStateBackward = 4,
 		CameraStateLeft = 8,
 		CameraStateRight = 16,
-		CameraStateMoving = (CameraStateForward|CameraStateBackward|CameraStateLeft|CameraStateRight)
+		CameraStateUp = 32,
+		CameraStateDown = 64,
+		CameraStateMoving = (CameraStateForward|CameraStateBackward|CameraStateLeft|CameraStateRight|CameraStateUp|CameraStateDown)
 	};
 
 	typedef Math::InterpolationArray<float, 3> CurveVector;

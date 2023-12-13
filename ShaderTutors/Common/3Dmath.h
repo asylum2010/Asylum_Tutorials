@@ -74,12 +74,16 @@ struct Vector3
 	Vector3 operator +(const Vector3& v) const;
 	Vector3 operator -(const Vector3& v) const;
 	Vector3 operator *(float s) const;
+	Vector3 operator /(float s) const;
 
 	Vector3 operator -() const;
 
 	Vector3& operator =(const Vector3& other);
 	Vector3& operator +=(const Vector3& other);
 	Vector3& operator *=(float s);
+
+	static Vector3 Min(const Vector3& a, const Vector3& b);
+	static Vector3 Max(const Vector3& a, const Vector3& b);
 
 	inline operator float*()					{ return &x; }
 	inline operator const float*() const		{ return &x; }
@@ -292,7 +296,9 @@ public:
 	AABox(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax);
 
 	AABox& operator =(const AABox& other);
+	AABox operator +(const AABox& other);
 
+	bool Contains(const Vector3& p) const;
 	bool Intersects(const AABox& other) const;
 
 	void Add(float x, float y, float z);
@@ -302,7 +308,9 @@ public:
 	void GetHalfSize(Vector3& out) const;
 	void GetPlanes(Vector4 out[6]) const;
 	void Inset(float dx, float dy, float dz);
+	void Offset(float dx, float dy, float dz);
 	void TransformAxisAligned(const Matrix& m);
+	void ToMatrix(Matrix& out) const;
 
 	float Radius() const;
 	float RayIntersect(const Vector3& start, const Vector3& dir) const;
@@ -415,6 +423,36 @@ inline const T& Max(const T& a, const T& b) {
 	return ((a > b) ? a : b);
 }
 
+template<>
+const Vector2& Min(const Vector2& a, const Vector2& b) = delete;
+
+template <>
+const Vector2& Max(const Vector2& a, const Vector2& b) = delete;
+
+template<>
+const Vector3& Min(const Vector3& a, const Vector3& b) = delete;
+
+template <>
+const Vector3& Max(const Vector3& a, const Vector3& b) = delete;
+
+template<>
+const Vector4& Min(const Vector4& a, const Vector4& b) = delete;
+
+template <>
+const Vector4& Max(const Vector4& a, const Vector4& b) = delete;
+
+template<>
+const Matrix& Min(const Matrix& a, const Matrix& b) = delete;
+
+template <>
+const Matrix& Max(const Matrix& a, const Matrix& b) = delete;
+
+template<>
+const Quaternion& Min(const Quaternion& a, const Quaternion& b) = delete;
+
+template <>
+const Quaternion& Max(const Quaternion& a, const Quaternion& b) = delete;
+
 template <typename T>
 void Swap(T& a, T& b)
 {
@@ -479,6 +517,7 @@ Math::Vector2 operator *(float f, const Math::Vector2& v);
 Math::Vector3 operator *(float f, const Math::Vector3& v);
 Math::Vector4 operator *(float f, const Math::Vector4& v);
 
+Math::Vector3 operator /(float f, const Math::Vector3& v);
 Math::Vector4 operator /(float f, const Math::Vector4& v);
 
 Math::Color operator *(float f, const Math::Color& color);

@@ -79,6 +79,7 @@ enum OpenGLFormat
 	GLFMT_A8R8G8B8_sRGB,
 	GLFMT_A8B8G8R8,
 	GLFMT_A8B8G8R8_sRGB,
+	GLFMT_R16_UINT,
 
 	GLFMT_D24S8,
 	GLFMT_D32F,
@@ -249,9 +250,11 @@ public:
 	bool LockVertexBuffer(GLuint offset, GLuint size, GLuint flags, void** data);
 	bool LockIndexBuffer(GLuint offset, GLuint size, GLuint flags, void** data);
 
+	void CalculateBoundingBox();
 	void Draw();
 	void DrawInstanced(GLuint numinstances);
 	void DrawSubset(GLuint subset, bool bindtextures = false);
+	void DrawSubset(GLuint subset, std::function<void (const OpenGLMaterial&)> callback);
 	void DrawSubsetInstanced(GLuint subset, GLuint numinstances, bool bindtextures = false);
 	void EnableSubset(GLuint subset, bool enable);
 	void GenerateTangentFrame();
@@ -373,6 +376,7 @@ public:
 	bool Assemble();
 	
 	void Bind();
+	void Introspect();
 	void UseProgramStages(OpenGLProgramPipeline* other, GLbitfield stages);
 
 	inline GLuint GetProgram() const	{ return program; }
@@ -419,6 +423,7 @@ public:
 
 	void Attach(GLenum target, GLuint tex, GLint level);
 	void Attach(GLenum target, GLuint tex, GLint face, GLint level);
+	void Attach(GLenum target, GLuint renderbuffer);
 	void CopyDepthStencil(OpenGLFramebuffer* to, GLbitfield mask);
 	void Detach(GLenum target);
 	void Resolve(OpenGLFramebuffer* to, GLbitfield mask);

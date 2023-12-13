@@ -41,7 +41,7 @@ public:
 	ShadowCaster();
 	~ShadowCaster();
 
-	void CreateGeometry(std::function<void(LPD3DXMESH*, LPD3DXMESH*)> callback);
+	void CreateGeometry(std::function<void (LPD3DXMESH*, LPD3DXMESH*)> callback);
 	void ExtrudeSilhouette(const Math::Vector4& position);
 	void SetTransform(const Math::Matrix& transform);
 
@@ -98,7 +98,7 @@ ShadowCaster::~ShadowCaster()
 	SAFE_RELEASE(manifold);
 }
 
-void ShadowCaster::CreateGeometry(std::function<void(LPD3DXMESH*, LPD3DXMESH*)> callback)
+void ShadowCaster::CreateGeometry(std::function<void (LPD3DXMESH*, LPD3DXMESH*)> callback)
 {
 	callback(&mesh, &manifold);
 

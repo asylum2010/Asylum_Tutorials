@@ -15,7 +15,6 @@ uniform sampler2D noise;
 
 uniform vec4 projInfo;
 uniform vec4 clipInfo;
-uniform vec3 eyePos;
 uniform vec4 params;
 
 out float my_FragColor0;
@@ -64,7 +63,7 @@ void main()
 
 	vec2 noises	= texelFetch(noise, loc % 4, 0).rg;
 	vec2 offset;
-	vec2 horizons = vec2(-1.0, -1.0);
+	vec2 horizons;
 
 	float radius = (RADIUS * clipInfo.z) / vpos.z;
 	radius = max(NUM_STEPS, radius);
@@ -111,7 +110,7 @@ void main()
 
 	horizons = acos(horizons);
 
-	// calculate gamma
+	// calculate gamma angle
 	vec3 bitangent	= normalize(cross(dir, vdir));
 	vec3 tangent	= cross(vdir, bitangent);
 	vec3 nx			= vnorm - bitangent * dot(vnorm, bitangent);

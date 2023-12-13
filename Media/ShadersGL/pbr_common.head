@@ -167,6 +167,16 @@ vec4 BRDF_Lambertian(sampler2D samp, vec2 tex)
 	return color;
 }
 
+vec4 BRDF_Lambertian_NoDivision(sampler2D samp, vec2 tex)
+{
+	vec4 albedo = texture(samp, tex);
+	vec4 color = mix(baseColor, albedo, matParams.z);
+
+	color.rgb = mix(color.rgb, vec3(0.0), matParams.y);
+
+	return color;
+}
+
 vec3 BRDF_CookTorrance(vec3 l, vec3 v, vec3 n, vec3 F0, float roughness)
 {
 	vec3 h = normalize(v + l);

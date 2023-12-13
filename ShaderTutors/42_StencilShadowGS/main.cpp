@@ -40,7 +40,7 @@ public:
 	ShadowCaster();
 	~ShadowCaster();
 
-	void CreateGeometry(std::function<void(ID3DX10Mesh**, ID3DX10Mesh**)> callback);
+	void CreateGeometry(std::function<void (ID3DX10Mesh**, ID3DX10Mesh**)> callback);
 	void SetTransform(const Math::Matrix& transform);
 
 	inline const Math::Matrix& GetTransform() const		{ return transform; }
@@ -105,7 +105,7 @@ ShadowCaster::~ShadowCaster()
 	SAFE_RELEASE(manifold);
 }
 
-void ShadowCaster::CreateGeometry(std::function<void(ID3DX10Mesh**, ID3DX10Mesh**)> callback)
+void ShadowCaster::CreateGeometry(std::function<void (ID3DX10Mesh**, ID3DX10Mesh**)> callback)
 {
 	callback(&mesh, &manifold);
 

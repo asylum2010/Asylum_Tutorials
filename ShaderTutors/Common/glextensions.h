@@ -237,6 +237,7 @@ extern PFNGLDISPATCHCOMPUTEPROC						glDispatchCompute;
 extern PFNGLDISPATCHCOMPUTEINDIRECTPROC				glDispatchComputeIndirect;
 extern PFNGLBINDIMAGETEXTUREPROC					glBindImageTexture;
 extern PFNGLMEMORYBARRIERPROC						glMemoryBarrier;
+extern PFNGLMEMORYBARRIERBYREGIONPROC				glMemoryBarrierByRegion;
 extern PFNGLGETPROGRAMBINARYPROC					glGetProgramBinary;
 extern PFNGLGETPROGRAMINTERFACEIVPROC				glGetProgramInterfaceiv;
 extern PFNGLSHADERSTORAGEBLOCKBINDINGPROC			glShaderStorageBlockBinding;

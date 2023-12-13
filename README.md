@@ -2,7 +2,6 @@
 # Asylum Tutorials
 
 This project provides supplementary material for my (hungarian) articles posted on my [blog](http://darthasylum.blog.hu/).
-The old version is archived [here](https://my.pcloud.com/publink/show?code=XZ4QhG7ZuA3jBe49U35VRBo2shrAaup27xS7), I won't touch it anymore.
 
 ## Compilation
 

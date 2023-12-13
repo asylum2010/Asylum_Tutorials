@@ -92,7 +92,7 @@ void SpectatorCamera::Update(float dt)
 {
 	Math::Vector3 forward, right, up;
 	Math::Vector3 diff;
-	Math::Vector2 movedir;
+	Math::Vector3 movedir;
 
 	// rotate
 	targetangles[1] = Math::Clamp(targetangles[1], -Math::HALF_PI, Math::HALF_PI);
@@ -113,22 +113,33 @@ void SpectatorCamera::Update(float dt)
 
 	if (state & CameraStateMoving) {
 		if (state & CameraStateLeft)
-			movedir[0] = -1;
+			movedir.x = -1;
 
 		if (state & CameraStateRight)
-			movedir[0] = 1;
+			movedir.x = 1;
+
+		if (state & CameraStateUp)
+			movedir.y = 1;
+
+		if (state & CameraStateDown)
+			movedir.y = -1;
 
 		if (state & CameraStateForward)
-			movedir[1] = 1;
+			movedir.z = 1;
 
 		if (state & CameraStateBackward)
-			movedir[1] = -1;
+			movedir.z = -1;
 
 		GetViewVectors(forward, right, up);
 
-		Math::Vec3Scale(forward, forward, movedir[1]);
-		Math::Vec3Scale(right, right, movedir[0]);
+		up = Math::Vector3(0, 1, 0);
+
+		Math::Vec3Scale(right, right, movedir.x);
+		Math::Vec3Scale(up, up, movedir.y);
+		Math::Vec3Scale(forward, forward, movedir.z);
+
 		Math::Vec3Add(diff, forward, right);
+		Math::Vec3Add(diff, diff, up);
 
 		Math::Vec3Normalize(diff, diff);
 		Math::Vec3Scale(diff, diff, dt * speed);
@@ -172,6 +183,12 @@ void SpectatorCamera::OnKeyDown(KeyCode keycode)
 
 	if (keycode == KeyCodeA)
 		state |= CameraStateLeft;
+
+	if (keycode == KeyCodeSpace)
+		state |= CameraStateUp;
+
+	if (keycode == KeyCodeLeftControl)
+		state |= CameraStateDown;
 }
 
 void SpectatorCamera::OnKeyUp(KeyCode keycode)
@@ -187,6 +204,12 @@ void SpectatorCamera::OnKeyUp(KeyCode keycode)
 
 	if (keycode == KeyCodeA)
 		state &= (~CameraStateLeft);
+
+	if (keycode == KeyCodeSpace)
+		state &= (~CameraStateUp);
+
+	if (keycode == KeyCodeLeftControl)
+		state &= (~CameraStateDown);
 }
 
 void SpectatorCamera::OnMouseMove(int16_t dx, int16_t dy)
